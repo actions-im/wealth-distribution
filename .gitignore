@@ -1,0 +1,13 @@
+.venv/
+.agents/
+__pycache__/
+.pytest_cache/
+.streamlit/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+data/raw/*
+data/processed/*
+!data/raw/README.md
+!data/processed/README.md

@@ -1,0 +1,25 @@
+[project]
+name = "real-wealth-distribution"
+version = "0.1.0"
+description = "Interactive Streamlit report comparing marketable wealth with discounted future labor earnings."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pandas",
+    "plotly",
+    "pyarrow",
+    "python-dotenv",
+    "requests",
+    "scipy",
+    "statsmodels",
+    "streamlit",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
