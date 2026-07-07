@@ -13,13 +13,13 @@ The app does not claim that human capital is the same as stocks, bonds, real est
 The app currently includes:
 
 - A working multipage Streamlit interface.
-- A generated sample dataset so the report runs immediately while official source processing is being wired in.
-- A total-country distribution view that weights quantile groups by population share.
+- Real Federal Reserve 2022 SCF public summary extract data for the interactive charts.
+- A total-country distribution view that groups households by SCF-weighted net-worth quantiles.
 - Human-capital present-value calculations.
 - Weighted-statistics utilities for SCF-style survey data.
-- Fed DFA and SCF downloader/loader hooks.
+- Fed SCF downloader/loader and Fed DFA source support.
 - Source-data page with official links.
-- Unit tests for formulas, weighted statistics, and processed-data schema.
+- Unit tests for formulas, weighted statistics, and real-data processing.
 
 ## Official Sources
 
@@ -59,7 +59,8 @@ combined_real_wealth = traditional_net_worth + human_capital
 Country-level quantile shares:
 
 ```text
-quantile_total_wealth = average_household_wealth_in_quantile * quantile_population_share
+weighted_household_wealth = household_wealth * SCF_household_weight
+quantile_total_wealth = sum(weighted_household_wealth for households in quantile)
 quantile_wealth_share = quantile_total_wealth / sum(all_quantile_total_wealth)
 ```
 
@@ -71,7 +72,7 @@ vs.
 share of combined marketable wealth + discounted future labor earnings owned by the top 1%
 ```
 
-The generated sample data is tuned to demonstrate the intended analytical contrast: marketable assets are highly concentrated near the top, while human-capital-inclusive economic capacity is less concentrated. It is not an empirical finding.
+The app uses SCF `networth` for the standard ledger and positive SCF `wageinc` as the labor-income proxy for discounted future earnings. The SCF public summary extract includes multiple implicates; the supplied SCF weights sum to the national household count across the extract and are used directly.
 
 Liquidity-adjusted real wealth:
 
@@ -111,7 +112,7 @@ Dependency management uses `uv` through `pyproject.toml` and `uv.lock`. Streamli
 2. Marketable assets are liquid, transferable, borrowable, and inheritable.
 3. Human capital is personal, risky, nontransferable, partly taxable, and sensitive to health and labor-market risk.
 4. Human-capital estimates depend heavily on discount rates, wage growth, employment probability, retirement age, and taxes.
-5. Generated sample data must be replaced with processed SCF/DFA data before publishing as an empirical finding.
+5. The current human-capital estimate uses SCF wage income only; a fuller model should incorporate employment probabilities, earnings trajectories, education, occupation, health, and demographic transitions from CPS/ACS-style data.
 
 ## License
 

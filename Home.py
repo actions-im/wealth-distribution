@@ -2,21 +2,21 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.app_data import load_report_household_data
 from src.charts import single_distribution_share_bar
 from src.formatting import percent
-from src.reporting import build_detail_wealth_table, build_executive_share_table
-from src.sample_data import (
-    PLACEHOLDER_HOUSEHOLD_COUNT,
-    aggregate_country_distribution_by_quantile,
-    build_sample_household_data,
+from src.real_data import (
+    SCF_2022_DATA_NOTE,
+    aggregate_real_country_distribution_by_quantile,
 )
+from src.reporting import build_detail_wealth_table, build_executive_share_table
 from src.ui import methodology_expander, render_assumption_sidebar
 
 
 st.set_page_config(page_title="Real Wealth Distribution", layout="wide", initial_sidebar_state="collapsed")
 
 assumptions = render_assumption_sidebar()
-data = build_sample_household_data(
+data = load_report_household_data(
     discount_rate=assumptions["discount_rate"],
     wage_growth=assumptions["wage_growth"],
     retirement_age=assumptions["retirement_age"],
@@ -24,7 +24,7 @@ data = build_sample_household_data(
     tax_rate=assumptions["tax_rate"],
     liquidity_weight=assumptions["liquidity_weight"],
 )
-country_distribution = aggregate_country_distribution_by_quantile(data)
+country_distribution = aggregate_real_country_distribution_by_quantile(data)
 
 st.title("The Standard Wealth Debate Compares Mismatched Ledgers")
 st.caption("Stock wealth already prices future cash flows. Labor wealth is usually counted as zero.")
@@ -59,8 +59,7 @@ with left:
             "traditional_net_worth_share",
             "Standard ledger: future labor earnings = $0",
             "#8f1d14",
-        ),
-        use_container_width=True,
+        )
     )
 with right:
     st.plotly_chart(
@@ -69,13 +68,11 @@ with right:
             "combined_real_wealth_share",
             "Adjusted ledger: future labor earnings discounted to today",
             "#0f766e",
-        ),
-        use_container_width=True,
+        )
     )
 
 st.dataframe(
     build_executive_share_table(country_distribution),
-    use_container_width=True,
     hide_index=True,
 )
 
@@ -87,14 +84,10 @@ st.markdown(
 
 with st.expander("Data note and detailed totals"):
     st.write(
-        f"This prototype uses a generated sample with {PLACEHOLDER_HOUSEHOLD_COUNT:,} households. "
-        "It is calibrated to demonstrate the valuation methodology, not to make an empirical claim. "
-        "Dollar totals are shown in trillions. Replace the sample with processed Fed SCF/DFA data before "
-        "publishing empirical claims."
+        f"{SCF_2022_DATA_NOTE} Dollar totals are weighted national totals and are shown in trillions."
     )
     st.dataframe(
         build_detail_wealth_table(country_distribution),
-        use_container_width=True,
         hide_index=True,
     )
 

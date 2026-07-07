@@ -8,8 +8,8 @@ from src.config import DEFAULT_ASSUMPTIONS, SOURCE_NOTE
 def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[str, float | int]:
     st.sidebar.header("Assumptions")
     st.sidebar.caption(
-        "Prototype data: charts currently use a generated sample calibrated to demonstrate the methodology. "
-        "Fed DFA/SCF source loaders are present, but official data is not wired into the interactive views yet."
+        "Data: Federal Reserve 2022 SCF public summary extract, weighted with SCF household weights. "
+        "Future earnings use positive SCF wage income as the labor-income proxy."
     )
     if include_wealth_definition:
         wealth_definition = st.sidebar.selectbox(
@@ -92,5 +92,6 @@ def methodology_expander() -> None:
         )
         st.markdown(
             "Federal Reserve research has used related human-wealth or comprehensive-wealth concepts, "
-            "including present-value treatment of future income. See the Source Data page for links."
+            "including present-value treatment of future income. The interactive estimates use SCF 2022 "
+            "net worth, wage income, age, and household weights. See the Source Data page for links."
         )

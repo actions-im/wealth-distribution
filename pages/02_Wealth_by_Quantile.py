@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.app_data import load_report_household_data
 from src.charts import current_vs_adjusted_share_bar
 from src.formatting import percent
+from src.real_data import SCF_2022_DATA_NOTE, aggregate_real_country_distribution_by_quantile
 from src.reporting import build_detail_wealth_table, build_executive_share_table
-from src.sample_data import PLACEHOLDER_HOUSEHOLD_COUNT, aggregate_country_distribution_by_quantile, build_sample_household_data
 from src.ui import methodology_expander, render_assumption_sidebar
 
 
 st.set_page_config(page_title="Wealth by Quantile", layout="wide", initial_sidebar_state="collapsed")
 
 assumptions = render_assumption_sidebar()
-data = build_sample_household_data(
+data = load_report_household_data(
     assumptions["discount_rate"],
     assumptions["wage_growth"],
     assumptions["retirement_age"],
@@ -20,19 +21,20 @@ data = build_sample_household_data(
     assumptions["tax_rate"],
     assumptions["liquidity_weight"],
 )
-country_distribution = aggregate_country_distribution_by_quantile(data)
+country_distribution = aggregate_real_country_distribution_by_quantile(data)
 
 st.title("Total Country Wealth by Quantile")
 st.write(
     "This page is about the total wealth of the country, not the average household inside each group. "
     "It separates the standard ledger from the apples-to-apples adjustment: stock and business wealth "
     "already reflect expected future cash flows, while future labor earnings are normally counted as zero. "
-    f"The generated sample assumes {PLACEHOLDER_HOUSEHOLD_COUNT:,} households, then splits those households "
-    "across wealth quantiles. Dollar totals are shown in trillions of dollars."
+    "The household counts and dollar totals come from weighted 2022 SCF household microdata. "
+    "Dollar totals are shown in trillions of dollars."
 )
 st.info(
     "Standard ledger = marketable assets minus debts, with future labor earnings implicitly valued at $0. "
-    "Adjusted ledger = standard ledger plus discounted future labor earnings."
+    "Adjusted ledger = standard ledger plus discounted future wage income. "
+    f"{SCF_2022_DATA_NOTE}"
 )
 
 top_one = country_distribution[
@@ -48,21 +50,18 @@ col3.metric("Bottom 90% marketable share", percent(bottom_ninety["traditional_ne
 col4.metric("Bottom 90% adjusted share", percent(bottom_ninety["combined_real_wealth_share"].sum()))
 
 st.plotly_chart(
-    current_vs_adjusted_share_bar(country_distribution, "Current vs adjusted total country wealth"),
-    use_container_width=True,
+    current_vs_adjusted_share_bar(country_distribution, "Current vs adjusted total country wealth")
 )
 
 st.subheader("Share of Total Country Wealth")
 st.dataframe(
     build_executive_share_table(country_distribution),
-    use_container_width=True,
     hide_index=True,
 )
 
 st.subheader("Dollar Totals")
 st.dataframe(
     build_detail_wealth_table(country_distribution),
-    use_container_width=True,
     hide_index=True,
 )
 

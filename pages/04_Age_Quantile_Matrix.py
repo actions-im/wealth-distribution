@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.app_data import load_report_household_data
 from src.charts import matrix_heatmap
-from src.sample_data import build_sample_household_data
+from src.real_data import aggregate_real_age_quantile_matrix
 from src.ui import methodology_expander, render_assumption_sidebar
 
 
 st.set_page_config(page_title="Age Quantile Matrix", layout="wide")
 
 assumptions = render_assumption_sidebar()
-data = build_sample_household_data(
+data = load_report_household_data(
     assumptions["discount_rate"],
     assumptions["wage_growth"],
     assumptions["retirement_age"],
@@ -18,6 +19,7 @@ data = build_sample_household_data(
     assumptions["tax_rate"],
     assumptions["liquidity_weight"],
 )
+matrix_data = aggregate_real_age_quantile_matrix(data)
 
 st.title("Age x Quantile Matrix")
 metric = st.selectbox(
@@ -30,6 +32,5 @@ metric = st.selectbox(
     ],
 )
 
-st.plotly_chart(matrix_heatmap(data, metric), use_container_width=True)
+st.plotly_chart(matrix_heatmap(matrix_data, metric))
 methodology_expander()
-

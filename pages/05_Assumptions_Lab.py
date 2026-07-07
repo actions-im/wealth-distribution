@@ -3,8 +3,9 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.app_data import load_report_household_data
 from src.charts import stacked_marketable_vs_human
-from src.sample_data import aggregate_by_age, build_sample_household_data
+from src.real_data import aggregate_real_by_age
 from src.ui import methodology_expander, render_assumption_sidebar
 from src.validation import national_human_capital_sanity_check
 
@@ -12,7 +13,7 @@ from src.validation import national_human_capital_sanity_check
 st.set_page_config(page_title="Assumptions Lab", layout="wide")
 
 assumptions = render_assumption_sidebar()
-data = build_sample_household_data(
+data = load_report_household_data(
     assumptions["discount_rate"],
     assumptions["wage_growth"],
     assumptions["retirement_age"],
@@ -20,7 +21,7 @@ data = build_sample_household_data(
     assumptions["tax_rate"],
     assumptions["liquidity_weight"],
 )
-age_data = aggregate_by_age(data)
+age_data = aggregate_real_by_age(data)
 
 st.title("Assumptions Lab")
 st.write("Use the sidebar sliders to stress-test the present-value model.")
@@ -58,11 +59,9 @@ scenarios = pd.DataFrame(
 )
 scenarios["National human-capital estimate"] = scenarios["National human-capital estimate"].map(lambda x: f"${x / 1e12:,.0f}T")
 
-st.dataframe(scenarios, use_container_width=True, hide_index=True)
+st.dataframe(scenarios, hide_index=True)
 st.plotly_chart(
-    stacked_marketable_vs_human(age_data, "age_group", "Current slider assumptions"),
-    use_container_width=True,
+    stacked_marketable_vs_human(age_data, "age_group", "Current slider assumptions")
 )
 
 methodology_expander()
-
