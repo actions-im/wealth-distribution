@@ -1,11 +1,13 @@
-from src.reporting import build_executive_share_table
+import pytest
+
 from src.real_data import (
     aggregate_real_country_distribution_by_quantile,
     build_real_wealth_household_data,
 )
 
 
-def test_executive_share_table_focuses_on_current_vs_adjusted_distribution():
+@pytest.fixture
+def real_distribution():
     data = build_real_wealth_household_data(
         [
             {"wgt": 500, "age": 30, "wageinc": 55_000, "networth": 30_000},
@@ -21,18 +23,4 @@ def test_executive_share_table_focuses_on_current_vs_adjusted_distribution():
         tax_rate=0.0,
         liquidity_weight=0.25,
     )
-    distribution = aggregate_real_country_distribution_by_quantile(data)
-
-    table = build_executive_share_table(distribution)
-
-    assert list(table.columns) == [
-        "Quantile",
-        "Current wealth share",
-        "Adjusted wealth share",
-        "Change",
-        "Source",
-    ]
-    assert table.loc[0, "Current wealth share"].endswith("%")
-    assert table.loc[0, "Adjusted wealth share"].endswith("%")
-    assert table["Change"].str.endswith("%").all()
-    assert table["Source"].str.contains("SCF").all()
+    return aggregate_real_country_distribution_by_quantile(data)

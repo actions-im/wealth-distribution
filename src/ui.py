@@ -3,6 +3,7 @@ from __future__ import annotations
 import streamlit as st
 
 from src.config import DEFAULT_ASSUMPTIONS, SOURCE_NOTE
+from src.provenance import assumption_source_caption
 
 
 def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[str, float | int]:
@@ -11,6 +12,7 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
         "Data: Federal Reserve 2022 SCF public summary extract, weighted with SCF household weights. "
         "Future earnings use positive SCF wage income as the labor-income proxy."
     )
+    st.sidebar.caption(assumption_source_caption())
     if include_wealth_definition:
         wealth_definition = st.sidebar.selectbox(
             "Wealth definition",

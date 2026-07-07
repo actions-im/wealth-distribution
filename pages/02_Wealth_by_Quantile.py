@@ -5,6 +5,7 @@ import streamlit as st
 from src.app_data import load_report_household_data
 from src.charts import current_vs_adjusted_share_bar
 from src.formatting import percent
+from src.provenance import build_number_source_table, chart_source_caption, table_source_note
 from src.real_data import SCF_2022_DATA_NOTE, aggregate_real_country_distribution_by_quantile
 from src.reporting import build_detail_wealth_table, build_executive_share_table
 from src.ui import methodology_expander, render_assumption_sidebar
@@ -48,21 +49,26 @@ col1.metric("Top 1% marketable share", percent(top_one["traditional_net_worth_sh
 col2.metric("Top 1% adjusted share", percent(top_one["combined_real_wealth_share"].sum()))
 col3.metric("Bottom 90% marketable share", percent(bottom_ninety["traditional_net_worth_share"].sum()))
 col4.metric("Bottom 90% adjusted share", percent(bottom_ninety["combined_real_wealth_share"].sum()))
+st.caption(chart_source_caption())
 
 st.plotly_chart(
     current_vs_adjusted_share_bar(country_distribution, "Current vs adjusted total country wealth")
 )
+st.caption(chart_source_caption())
 
 st.subheader("Share of Total Country Wealth")
-st.dataframe(
-    build_executive_share_table(country_distribution),
-    hide_index=True,
+st.table(
+    build_executive_share_table(country_distribution).set_index("Quantile"),
 )
+st.caption(table_source_note())
 
 st.subheader("Dollar Totals")
-st.dataframe(
-    build_detail_wealth_table(country_distribution),
-    hide_index=True,
+st.table(
+    build_detail_wealth_table(country_distribution).set_index("Quantile"),
 )
+st.caption(table_source_note())
+
+with st.expander("Sources for every number on this page"):
+    st.table(build_number_source_table(assumptions).set_index("Number category"))
 
 methodology_expander()

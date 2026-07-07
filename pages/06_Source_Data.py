@@ -4,6 +4,7 @@ import streamlit as st
 
 from src.app_data import load_report_household_data
 from src.data_sources import source_table
+from src.provenance import build_number_source_table
 from src.real_data import SCF_2022_DATA_NOTE
 from src.ui import render_assumption_sidebar
 
@@ -28,7 +29,15 @@ st.write(
 )
 st.info(SCF_2022_DATA_NOTE)
 
+st.subheader("Number Source Audit")
+st.write(
+    "Every displayed number in the report should fall into one of these categories: Fed SCF input data, "
+    "a calculation from Fed SCF fields, a visible sidebar assumption, or a report-defined grouping."
+)
+st.table(build_number_source_table(assumptions).set_index("Number category"))
+
 sources = source_table()
+st.subheader("Official Sources and Methodology Links")
 st.dataframe(
     sources,
     hide_index=True,

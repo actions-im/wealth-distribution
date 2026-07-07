@@ -4,6 +4,7 @@ import streamlit as st
 
 from src.app_data import load_report_household_data
 from src.charts import money_bar, stacked_marketable_vs_human
+from src.provenance import build_number_source_table, chart_source_caption
 from src.real_data import aggregate_real_by_age
 from src.ui import methodology_expander, render_assumption_sidebar
 
@@ -34,9 +35,14 @@ with col2:
     st.plotly_chart(money_bar(age_data, "age_group", "human_capital", "Human capital"))
 with col3:
     st.plotly_chart(money_bar(age_data, "age_group", "combined_real_wealth", "Combined real wealth"))
+st.caption(chart_source_caption())
 
 st.plotly_chart(
     stacked_marketable_vs_human(age_data, "age_group", "Marketable wealth vs human capital by age")
 )
+st.caption(chart_source_caption())
+
+with st.expander("Sources for every number on this page"):
+    st.table(build_number_source_table(assumptions).set_index("Number category"))
 
 methodology_expander()

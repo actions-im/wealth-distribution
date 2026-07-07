@@ -18,7 +18,7 @@ The app currently includes:
 - Human-capital present-value calculations.
 - Weighted-statistics utilities for SCF-style survey data.
 - Fed SCF downloader/loader and Fed DFA source support.
-- Source-data page with official links.
+- Source-data page with official links and a number-source audit table.
 - Unit tests for formulas, weighted statistics, and real-data processing.
 
 ## Official Sources
@@ -80,6 +80,16 @@ Liquidity-adjusted real wealth:
 liquidity_adjusted_real_wealth =
     traditional_net_worth + liquidity_weight_human_capital * human_capital
 ```
+
+## Number Provenance
+
+Every displayed number should map to one of these categories:
+
+- SCF input data: survey year, household weights, age, wage income, and net worth come from the Federal Reserve 2022 SCF public summary extract.
+- SCF-derived calculations: household counts, quantile population shares, marketable wealth totals, and marketable wealth shares are computed from `wgt` and `networth`.
+- SCF plus model assumptions: discounted future earnings and adjusted total wealth are computed from positive `wageinc`, `age`, `wgt`, and the visible sidebar assumptions.
+- Model assumptions: discount rate, real wage growth, retirement age, employment probability, tax haircut, and liquidity weight are scenario controls shown in the sidebar.
+- Report definitions: age buckets and wealth-quantile breakpoints are defined by the report and shown in the source audit.
 
 ## Run Locally
 

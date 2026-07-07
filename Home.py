@@ -5,6 +5,7 @@ import streamlit as st
 from src.app_data import load_report_household_data
 from src.charts import single_distribution_share_bar
 from src.formatting import percent
+from src.provenance import build_number_source_table, chart_source_caption, table_source_note
 from src.real_data import (
     SCF_2022_DATA_NOTE,
     aggregate_real_country_distribution_by_quantile,
@@ -49,6 +50,7 @@ col1.metric("Top 1% marketable share", percent(top_one["traditional_net_worth_sh
 col2.metric("Top 1% adjusted share", percent(top_one["combined_real_wealth_share"].sum()))
 col3.metric("Bottom 90% marketable share", percent(bottom_ninety["traditional_net_worth_share"].sum()))
 col4.metric("Bottom 90% adjusted share", percent(bottom_ninety["combined_real_wealth_share"].sum()))
+st.caption(chart_source_caption())
 
 st.subheader("The Apples-to-Apples Adjustment")
 left, right = st.columns(2)
@@ -70,11 +72,12 @@ with right:
             "#0f766e",
         )
     )
+st.caption(chart_source_caption())
 
-st.dataframe(
-    build_executive_share_table(country_distribution),
-    hide_index=True,
+st.table(
+    build_executive_share_table(country_distribution).set_index("Quantile"),
 )
+st.caption(table_source_note())
 
 st.markdown(
     "The adjusted view does **not** say human capital is liquid, tradable, or inheritable like stocks. "
@@ -86,9 +89,12 @@ with st.expander("Data note and detailed totals"):
     st.write(
         f"{SCF_2022_DATA_NOTE} Dollar totals are weighted national totals and are shown in trillions."
     )
-    st.dataframe(
-        build_detail_wealth_table(country_distribution),
-        hide_index=True,
+    st.table(
+        build_detail_wealth_table(country_distribution).set_index("Quantile"),
     )
+    st.caption(table_source_note())
+
+with st.expander("Sources for every number on this page"):
+    st.table(build_number_source_table(assumptions).set_index("Number category"))
 
 methodology_expander()

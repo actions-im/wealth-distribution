@@ -4,6 +4,7 @@ import streamlit as st
 
 from src.app_data import load_report_household_data
 from src.charts import matrix_heatmap
+from src.provenance import build_number_source_table, chart_source_caption
 from src.real_data import aggregate_real_age_quantile_matrix
 from src.ui import methodology_expander, render_assumption_sidebar
 
@@ -33,4 +34,9 @@ metric = st.selectbox(
 )
 
 st.plotly_chart(matrix_heatmap(matrix_data, metric))
+st.caption(chart_source_caption())
+
+with st.expander("Sources for every number on this page"):
+    st.table(build_number_source_table(assumptions).set_index("Number category"))
+
 methodology_expander()

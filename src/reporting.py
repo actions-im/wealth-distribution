@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 
 from src.formatting import percent
+from src.provenance import computed_scf_row_source
 
 
 def build_executive_share_table(distribution: pd.DataFrame) -> pd.DataFrame:
@@ -12,6 +13,7 @@ def build_executive_share_table(distribution: pd.DataFrame) -> pd.DataFrame:
             "Current wealth share": distribution["traditional_net_worth_share"].map(percent),
             "Adjusted wealth share": distribution["combined_real_wealth_share"].map(percent),
             "Change": distribution["combined_minus_marketable_share"].map(lambda value: percent(value, signed=True)),
+            "Source": computed_scf_row_source(),
         }
     )
     return table
@@ -46,5 +48,5 @@ def build_detail_wealth_table(distribution: pd.DataFrame) -> pd.DataFrame:
         "Adjusted total wealth",
     ]:
         table[column] = table[column].map(dollars_trillions)
+    table["Source"] = computed_scf_row_source()
     return table
-

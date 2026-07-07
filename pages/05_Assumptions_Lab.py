@@ -5,9 +5,9 @@ import streamlit as st
 
 from src.app_data import load_report_household_data
 from src.charts import stacked_marketable_vs_human
+from src.provenance import ASSUMPTION_SOURCE, build_number_source_table, chart_source_caption
 from src.real_data import aggregate_real_by_age
 from src.ui import methodology_expander, render_assumption_sidebar
-from src.validation import national_human_capital_sanity_check
 
 
 st.set_page_config(page_title="Assumptions Lab", layout="wide")
@@ -33,35 +33,32 @@ scenarios = pd.DataFrame(
             "Discount rate": "4.5%",
             "Wage growth": "0.5%",
             "Retirement age": 65,
-            "National human-capital estimate": national_human_capital_sanity_check(
-                discount_rate=0.045, wage_growth=0.005, horizon_years=35
-            ),
+            "Source": f"{ASSUMPTION_SOURCE}; report-defined sensitivity scenario",
         },
         {
             "Scenario": "Base",
             "Discount rate": "3.5%",
             "Wage growth": "1.5%",
             "Retirement age": 67,
-            "National human-capital estimate": national_human_capital_sanity_check(
-                discount_rate=0.035, wage_growth=0.015, horizon_years=40
-            ),
+            "Source": f"{ASSUMPTION_SOURCE}; report-defined sensitivity scenario",
         },
         {
             "Scenario": "Optimistic",
             "Discount rate": "2.5%",
             "Wage growth": "2.0%",
             "Retirement age": 70,
-            "National human-capital estimate": national_human_capital_sanity_check(
-                discount_rate=0.025, wage_growth=0.02, horizon_years=45
-            ),
+            "Source": f"{ASSUMPTION_SOURCE}; report-defined sensitivity scenario",
         },
     ]
 )
-scenarios["National human-capital estimate"] = scenarios["National human-capital estimate"].map(lambda x: f"${x / 1e12:,.0f}T")
 
-st.dataframe(scenarios, hide_index=True)
+st.table(scenarios.set_index("Scenario"))
 st.plotly_chart(
     stacked_marketable_vs_human(age_data, "age_group", "Current slider assumptions")
 )
+st.caption(chart_source_caption())
+
+with st.expander("Sources for every number on this page"):
+    st.table(build_number_source_table(assumptions).set_index("Number category"))
 
 methodology_expander()
