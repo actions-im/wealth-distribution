@@ -7,10 +7,9 @@ from src.config import DEFAULT_ASSUMPTIONS, SOURCE_NOTE
 
 def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[str, float | int]:
     st.sidebar.header("Assumptions")
-    dataset = st.sidebar.selectbox(
-        "Dataset",
-        ["Placeholder sample", "Fed DFA aggregate", "SCF microdata"],
-        help="The app ships with placeholder data until official source files are processed.",
+    st.sidebar.caption(
+        "Prototype data: charts currently use a generated sample calibrated to demonstrate the methodology. "
+        "Fed DFA/SCF source loaders are present, but official data is not wired into the interactive views yet."
     )
     if include_wealth_definition:
         wealth_definition = st.sidebar.selectbox(
@@ -58,7 +57,6 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
     )
     st.sidebar.caption(SOURCE_NOTE)
     return {
-        "dataset": dataset,
         "wealth_definition": wealth_definition,
         "discount_rate": discount_rate,
         "wage_growth": wage_growth,

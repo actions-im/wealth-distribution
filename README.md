@@ -13,7 +13,7 @@ The app does not claim that human capital is the same as stocks, bonds, real est
 The app currently includes:
 
 - A working multipage Streamlit interface.
-- A transparent placeholder dataset so the report runs immediately.
+- A generated sample dataset so the report runs immediately while official source processing is being wired in.
 - A total-country distribution view that weights quantile groups by population share.
 - Human-capital present-value calculations.
 - Weighted-statistics utilities for SCF-style survey data.
@@ -71,7 +71,7 @@ vs.
 share of combined marketable wealth + discounted future labor earnings owned by the top 1%
 ```
 
-The placeholder data is tuned to demonstrate the intended analytical contrast: marketable assets are highly concentrated near the top, while human-capital-inclusive economic capacity is less concentrated.
+The generated sample data is tuned to demonstrate the intended analytical contrast: marketable assets are highly concentrated near the top, while human-capital-inclusive economic capacity is less concentrated. It is not an empirical finding.
 
 Liquidity-adjusted real wealth:
 
@@ -111,7 +111,7 @@ Dependency management uses `uv` through `pyproject.toml` and `uv.lock`. Streamli
 2. Marketable assets are liquid, transferable, borrowable, and inheritable.
 3. Human capital is personal, risky, nontransferable, partly taxable, and sensitive to health and labor-market risk.
 4. Human-capital estimates depend heavily on discount rates, wage growth, employment probability, retirement age, and taxes.
-5. Placeholder data must be replaced with processed SCF/DFA data before publishing as an empirical finding.
+5. Generated sample data must be replaced with processed SCF/DFA data before publishing as an empirical finding.
 
 ## License
 

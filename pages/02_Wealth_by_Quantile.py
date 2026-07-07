@@ -27,7 +27,7 @@ st.write(
     "This page is about the total wealth of the country, not the average household inside each group. "
     "It separates the standard ledger from the apples-to-apples adjustment: stock and business wealth "
     "already reflect expected future cash flows, while future labor earnings are normally counted as zero. "
-    f"The placeholder model assumes {PLACEHOLDER_HOUSEHOLD_COUNT:,} households, then splits those households "
+    f"The generated sample assumes {PLACEHOLDER_HOUSEHOLD_COUNT:,} households, then splits those households "
     "across wealth quantiles. Dollar totals are shown in trillions of dollars."
 )
 st.info(

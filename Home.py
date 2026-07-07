@@ -87,9 +87,10 @@ st.markdown(
 
 with st.expander("Data note and detailed totals"):
     st.write(
-        f"This prototype uses a placeholder dataset with {PLACEHOLDER_HOUSEHOLD_COUNT:,} households. "
-        "Dollar totals are shown in trillions. Replace the placeholder data with processed Fed SCF/DFA "
-        "data before publishing empirical claims."
+        f"This prototype uses a generated sample with {PLACEHOLDER_HOUSEHOLD_COUNT:,} households. "
+        "It is calibrated to demonstrate the valuation methodology, not to make an empirical claim. "
+        "Dollar totals are shown in trillions. Replace the sample with processed Fed SCF/DFA data before "
+        "publishing empirical claims."
     )
     st.dataframe(
         build_detail_wealth_table(country_distribution),
