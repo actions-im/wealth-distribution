@@ -67,12 +67,12 @@ quantile_wealth_share = quantile_total_wealth / sum(all_quantile_total_wealth)
 The headline comparison is:
 
 ```text
-share of marketable net worth owned by the top 1% under the standard ledger
+priced wealth share owned by the top 1%
 vs.
-share of combined marketable wealth + discounted future labor earnings owned by the top 1%
+full wealth share owned by the top 1%
 ```
 
-The app uses SCF `networth` for the standard ledger and positive SCF `wageinc` as the labor-income proxy for discounted future earnings. The SCF public summary extract includes multiple implicates; the supplied SCF weights sum to the national household count across the extract and are used directly.
+The app uses SCF `networth` for priced wealth and positive SCF `wageinc` as the labor-income proxy for discounted future earnings. The SCF public summary extract includes multiple implicates; the supplied SCF weights sum to the national household count across the extract and are used directly.
 
 Liquidity-adjusted real wealth:
 
@@ -86,8 +86,8 @@ liquidity_adjusted_real_wealth =
 Every displayed number should map to one of these categories:
 
 - SCF input data: survey year, household weights, age, wage income, and net worth come from the Federal Reserve 2022 SCF public summary extract.
-- SCF-derived calculations: household counts, quantile population shares, marketable wealth totals, and marketable wealth shares are computed from `wgt` and `networth`.
-- SCF plus model assumptions: discounted future earnings and adjusted total wealth are computed from positive `wageinc`, `age`, `wgt`, and the visible sidebar assumptions.
+- SCF-derived calculations: household counts, quantile population shares, priced wealth totals, and priced wealth shares are computed from `wgt` and `networth`.
+- SCF plus model assumptions: discounted future earnings and full wealth are computed from positive `wageinc`, `age`, `wgt`, and the visible sidebar assumptions.
 - Model assumptions: discount rate, real wage growth, retirement age, employment probability, tax haircut, and liquidity weight are scenario controls shown in the sidebar.
 - Report definitions: age buckets and wealth-quantile breakpoints are defined by the report and shown in the source audit.
 

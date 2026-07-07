@@ -46,10 +46,10 @@ bottom_ninety = country_distribution[
 ]
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Top 1% marketable share", percent(top_one["traditional_net_worth_share"].sum()))
-col2.metric("Top 1% adjusted share", percent(top_one["combined_real_wealth_share"].sum()))
-col3.metric("Bottom 90% marketable share", percent(bottom_ninety["traditional_net_worth_share"].sum()))
-col4.metric("Bottom 90% adjusted share", percent(bottom_ninety["combined_real_wealth_share"].sum()))
+col1.metric("Top 1% priced wealth share", percent(top_one["traditional_net_worth_share"].sum()))
+col2.metric("Top 1% full wealth share", percent(top_one["combined_real_wealth_share"].sum()))
+col3.metric("Bottom 90% priced wealth share", percent(bottom_ninety["traditional_net_worth_share"].sum()))
+col4.metric("Bottom 90% full wealth share", percent(bottom_ninety["combined_real_wealth_share"].sum()))
 st.caption(chart_source_caption())
 
 st.subheader("The Apples-to-Apples Adjustment")
@@ -59,7 +59,7 @@ with left:
         single_distribution_share_bar(
             country_distribution,
             "traditional_net_worth_share",
-            "Standard ledger: future labor earnings = $0",
+            "Priced wealth: future labor earnings = $0",
             "#8f1d14",
         )
     )
@@ -68,7 +68,7 @@ with right:
         single_distribution_share_bar(
             country_distribution,
             "combined_real_wealth_share",
-            "Adjusted ledger: future labor earnings discounted to today",
+            "Full wealth: future labor earnings discounted to today",
             "#0f766e",
         )
     )
@@ -80,7 +80,7 @@ st.table(
 st.caption(table_source_note())
 
 st.markdown(
-    "The adjusted view does **not** say human capital is liquid, tradable, or inheritable like stocks. "
+    "The full-wealth view does **not** say human capital is liquid, tradable, or inheritable like stocks. "
     "It says that if one side of the comparison capitalizes future cash flows, the other side should not "
     "be forced into a present-only ledger."
 )

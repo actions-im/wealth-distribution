@@ -15,8 +15,8 @@ COMPUTED_SCF_SOURCE = (
 
 def chart_source_caption() -> str:
     return (
-        f"Source: {COMPUTED_SCF_SOURCE}. Current wealth uses networth x wgt. "
-        "Adjusted wealth adds discounted positive wageinc using the sidebar assumptions."
+        f"Source: {COMPUTED_SCF_SOURCE}. Priced wealth uses networth x wgt. "
+        "Full wealth adds discounted positive wageinc using the sidebar assumptions."
     )
 
 
@@ -35,7 +35,7 @@ def table_source_note() -> str:
 
 
 def computed_scf_row_source() -> str:
-    return "SCF 2022: networth, wageinc, age, wgt; adjusted values also use sidebar assumptions"
+    return "SCF 2022: networth, wageinc, age, wgt; full-wealth values also use sidebar assumptions"
 
 
 def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFrame:
@@ -51,7 +51,7 @@ def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFra
             "Method": "Sum SCF household weight field wgt within each net-worth quantile.",
         },
         {
-            "Number category": "Current marketable wealth dollars and shares",
+            "Number category": "Priced wealth dollars and shares",
             "Source": SCF_2022_DATASET_LABEL,
             "Method": "Sum networth x wgt within each quantile; divide by national weighted networth total for shares.",
         },
@@ -68,39 +68,39 @@ def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFra
             ),
         },
         {
-            "Number category": "Adjusted total wealth dollars and shares",
+            "Number category": "Full wealth dollars and shares",
             "Source": f"{SCF_2022_DATASET_LABEL} plus sidebar assumptions",
-            "Method": "Current marketable wealth plus discounted future earnings; weighted by wgt for totals and shares.",
+            "Method": "Priced wealth plus discounted future earnings; weighted by wgt for totals and shares.",
         },
         {
             "Number category": "Discount rate",
             "Source": ASSUMPTION_SOURCE,
-            "Method": f"Current sidebar value: discount_rate={assumptions['discount_rate']}.",
+            "Method": f"Sidebar value: discount_rate={assumptions['discount_rate']}.",
         },
         {
             "Number category": "Real wage growth",
             "Source": ASSUMPTION_SOURCE,
-            "Method": f"Current sidebar value: wage_growth={assumptions['wage_growth']}.",
+            "Method": f"Sidebar value: wage_growth={assumptions['wage_growth']}.",
         },
         {
             "Number category": "Retirement age",
             "Source": ASSUMPTION_SOURCE,
-            "Method": f"Current sidebar value: retirement_age={assumptions['retirement_age']}.",
+            "Method": f"Sidebar value: retirement_age={assumptions['retirement_age']}.",
         },
         {
             "Number category": "Employment probability",
             "Source": ASSUMPTION_SOURCE,
-            "Method": f"Current sidebar value: employment_probability={assumptions['employment_probability']}.",
+            "Method": f"Sidebar value: employment_probability={assumptions['employment_probability']}.",
         },
         {
             "Number category": "Flat tax haircut",
             "Source": ASSUMPTION_SOURCE,
-            "Method": f"Current sidebar value: tax_rate={assumptions['tax_rate']}.",
+            "Method": f"Sidebar value: tax_rate={assumptions['tax_rate']}.",
         },
         {
             "Number category": "Human-capital liquidity weight",
             "Source": ASSUMPTION_SOURCE,
-            "Method": f"Current sidebar value: liquidity_weight={assumptions['liquidity_weight']}.",
+            "Method": f"Sidebar value: liquidity_weight={assumptions['liquidity_weight']}.",
         },
         {
             "Number category": "Wealth quantile breakpoints",

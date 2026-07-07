@@ -66,7 +66,7 @@ def wealth_share_bar(data: pd.DataFrame, title: str):
     return fig
 
 
-def current_vs_adjusted_share_bar(data: pd.DataFrame, title: str):
+def priced_vs_full_share_bar(data: pd.DataFrame, title: str):
     melted = data.melt(
         id_vars=["wealth_quantile"],
         value_vars=["traditional_net_worth_share", "combined_real_wealth_share"],
@@ -74,12 +74,12 @@ def current_vs_adjusted_share_bar(data: pd.DataFrame, title: str):
         value_name="share",
     )
     labels = {
-        "traditional_net_worth_share": "Current ledger",
-        "combined_real_wealth_share": "Adjusted ledger",
+        "traditional_net_worth_share": "Priced wealth",
+        "combined_real_wealth_share": "Full wealth",
     }
     colors = {
-        "Current ledger": "#8f1d14",
-        "Adjusted ledger": "#0f766e",
+        "Priced wealth": "#8f1d14",
+        "Full wealth": "#0f766e",
     }
     melted["measure"] = melted["measure"].map(labels)
     fig = px.bar(

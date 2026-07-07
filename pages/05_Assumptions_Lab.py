@@ -54,7 +54,7 @@ scenarios = pd.DataFrame(
 
 st.table(scenarios.set_index("Scenario"))
 st.plotly_chart(
-    stacked_marketable_vs_human(age_data, "age_group", "Current slider assumptions")
+    stacked_marketable_vs_human(age_data, "age_group", "Selected sidebar assumptions")
 )
 st.caption(chart_source_caption())
 
