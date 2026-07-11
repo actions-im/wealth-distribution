@@ -1,0 +1,7 @@
+Provider: Social Security Administration, Office of the Chief Actuary
+Title: Period Life Table, 2019, as used in the 2022 Trustees Report
+Canonical URL: https://www.ssa.gov/oact/STATS/table4c6_2019_TR2022.html
+Retrieved: 2026-07-11
+Definition: Number of survivors out of 100,000 born alive, by exact age and sex.
+Transformation: scripts/extract_ssa_life_table.py parses the official published table into long CSV format without changing values.
+Reason for snapshot: SSA blocks unattended retrieval in some environments. The committed values make offline reproduction deterministic.

@@ -32,5 +32,13 @@
     "url": "https://www.ssa.gov/OACT/HistEst/PerLifeTables/2022/PerLifeTables_F_Alt2_TR2022.csv",
     "vintage": "2022 Trustees Report projected period life tables, female",
     "filename": "ssa_period_life_female_2022.csv"
+  },
+  "ssa_period_life_2019_tr2022": {
+    "provider": "Social Security Administration Office of the Chief Actuary",
+    "url": "https://www.ssa.gov/oact/STATS/table4c6_2019_TR2022.html",
+    "vintage": "2019 observed period life table published with the 2022 Trustees Report",
+    "filename": "ssa_period_life_2019_tr2022.csv",
+    "archive_member": null,
+    "sha256": null
   }
 }
