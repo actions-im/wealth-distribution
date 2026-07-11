@@ -50,3 +50,25 @@ def build_detail_wealth_table(distribution: pd.DataFrame) -> pd.DataFrame:
         table[column] = table[column].map(dollars_trillions)
     table["Source"] = computed_scf_row_source()
     return table
+
+
+def build_fixed_rank_decomposition(
+    data: pd.DataFrame,
+    *,
+    group_column: str,
+    component_columns: list[str],
+) -> pd.DataFrame:
+    """Aggregate components without re-ranking away from conventional net worth."""
+    required = {group_column, "household_weight", *component_columns}
+    missing = required - set(data.columns)
+    if missing:
+        raise ValueError(f"fixed-rank decomposition is missing columns: {sorted(missing)}")
+    working = data.copy()
+    for column in component_columns:
+        working[column] = working[column] * working["household_weight"]
+    table = working.groupby(group_column, observed=False, sort=False)[component_columns].sum()
+    table.attrs["definition"] = (
+        "Component decomposition at fixed conventional-net-worth rank; this is not a "
+        "metric-specific distribution."
+    )
+    return table.reset_index()

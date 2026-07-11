@@ -13,7 +13,12 @@ from src.pensions import DefinedBenefitPlan, value_defined_benefit_plan
 from src.scf_detailed import DetailedHouseholdInput, PersonInput
 from src.scf_loader import download_scf_extract, load_scf_extract
 from src.social_security import SocialSecurityPerson, social_security_wealth
-from src.weighted_stats import assign_weighted_quantile_group, weighted_median
+from src.weighted_stats import (
+    assign_weighted_quantile_group,
+    weighted_median,
+    weighted_rank_groups,
+    weighted_rank_positions,
+)
 
 
 SCF_2022_DATASET_LABEL = "Federal Reserve 2022 SCF public summary extract"
@@ -210,6 +215,41 @@ def value_detailed_household(
             assumption_version=assumptions.version,
         )
     )
+
+
+def build_ranked_distributions(
+    data: pd.DataFrame,
+    *,
+    metrics: dict[str, str] | None = None,
+) -> dict[str, pd.DataFrame]:
+    """Rank each reported resource measure by itself, never by a shared proxy."""
+    metrics = metrics or {
+        "conventional": "net_worth",
+        "defensive": "defensive_resources",
+        "continuation": "continuation_resources",
+    }
+    required = {"household_id", "household_weight", *metrics.values()}
+    missing = required - set(data.columns)
+    if missing:
+        raise ValueError(f"ranked distributions are missing columns: {sorted(missing)}")
+
+    distributions: dict[str, pd.DataFrame] = {}
+    for name, metric in metrics.items():
+        ranked = data.copy()
+        ranked["rank_position"] = weighted_rank_positions(
+            ranked[metric],
+            ranked["household_weight"],
+            tie_breaker=ranked["household_id"],
+        )
+        ranked["rank_group"] = weighted_rank_groups(
+            ranked[metric],
+            ranked["household_weight"],
+            WEALTH_QUANTILE_GROUPS,
+            tie_breaker=ranked["household_id"],
+        )
+        ranked["rank_basis"] = metric
+        distributions[name] = ranked
+    return distributions
 
 
 def load_real_wealth_household_data(

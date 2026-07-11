@@ -1,9 +1,11 @@
 import pytest
+import pandas as pd
 
 from src.real_data import (
     ComprehensiveHouseholdInput,
     aggregate_real_country_distribution_by_quantile,
     build_comprehensive_household,
+    build_ranked_distributions,
     build_real_wealth_household_data,
 )
 from src.config import ModelAssumptions
@@ -131,6 +133,23 @@ def test_invalid_probability_is_rejected():
 def test_model_assumptions_reject_nonpositive_real_discount_factor():
     with pytest.raises(ValueError, match="discount_rate"):
         ModelAssumptions(discount_rate=-1)
+
+
+def test_each_distribution_ranks_by_its_own_metric():
+    data = pd.DataFrame(
+        {
+            "household_id": [1, 2, 3, 4],
+            "household_weight": [1, 1, 1, 1],
+            "net_worth": [0, 10, 20, 100],
+            "defensive_resources": [0, 10, 200, 100],
+            "continuation_resources": [0, 10, 300, 100],
+        }
+    )
+    result = build_ranked_distributions(data)
+
+    conventional_top = result["conventional"].sort_values("rank_position").iloc[-1]["household_id"]
+    defensive_top = result["defensive"].sort_values("rank_position").iloc[-1]["household_id"]
+    assert conventional_top != defensive_top
 
 
 def _raw_scf_rows():

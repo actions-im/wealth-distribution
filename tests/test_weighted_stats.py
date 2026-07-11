@@ -6,6 +6,7 @@ from src.weighted_stats import (
     weighted_mean,
     weighted_median,
     weighted_quantile,
+    weighted_rank_groups,
 )
 
 
@@ -48,3 +49,14 @@ def test_assign_weighted_quantile_group_labels_observations():
     )
 
     assert labels == ["Bottom half", "Bottom half", "Top half", "Top half"]
+
+
+def test_weighted_rank_groups_uses_explicit_tie_breaker():
+    labels = weighted_rank_groups(
+        values=[10, 10, 20],
+        weights=[1, 1, 1],
+        groups=[("Bottom", 0, 0.5), ("Top", 0.5, 1)],
+        tie_breaker=[2, 1, 3],
+    )
+
+    assert labels == ["Bottom", "Bottom", "Top"]

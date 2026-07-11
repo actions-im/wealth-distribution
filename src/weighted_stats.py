@@ -78,3 +78,40 @@ def assign_weighted_quantile_group(values, weights, groups):
         labels[original_index] = labels_sorted[sorted_index]
 
     return labels
+
+
+def weighted_rank_positions(values, weights, *, tie_breaker=None) -> np.ndarray:
+    """Return cumulative-weight positions with deterministic ascending ties."""
+    value_array, weight_array = _validated_arrays(values, weights)
+    if tie_breaker is None:
+        tie_array = np.arange(len(value_array))
+    else:
+        tie_array = np.asarray(tie_breaker)
+        if tie_array.ndim != 1 or len(tie_array) != len(value_array):
+            raise ValueError("tie_breaker must be one-dimensional and match values")
+    order = np.lexsort((tie_array, value_array))
+    cumulative_before = np.concatenate(([0.0], np.cumsum(weight_array[order])[:-1]))
+    sorted_positions = cumulative_before / weight_array.sum()
+    positions = np.empty(len(value_array), dtype=float)
+    positions[order] = sorted_positions
+    return positions
+
+
+def weighted_rank_groups(values, weights, groups, *, tie_breaker=None):
+    if not isinstance(groups, Sequence) or len(groups) == 0:
+        raise ValueError("groups must be a non-empty sequence")
+    positions = weighted_rank_positions(values, weights, tie_breaker=tie_breaker)
+    labels: list[str | None] = []
+    for position in positions:
+        label = next(
+            (
+                name
+                for name, lower, upper in groups
+                if lower <= position < upper or (upper == 1 and lower <= position <= upper)
+            ),
+            None,
+        )
+        labels.append(label)
+    if any(label is None for label in labels):
+        raise ValueError("groups must cover the weighted percentile range from 0 to 1")
+    return labels
