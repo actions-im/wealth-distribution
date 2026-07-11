@@ -1,5 +1,3 @@
-import pytest
-
 from src.pensions import (
     DefinedBenefitPlan,
     defined_benefit_wealth,

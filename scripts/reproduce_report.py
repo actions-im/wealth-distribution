@@ -14,10 +14,10 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from src.config import ModelAssumptions
-from src.real_data import build_ranked_distributions
-from src.reconciliation import load_official_db_total, reconcile
-from src.source_manifest import load_source_registry
+from src.config import ModelAssumptions  # noqa: E402
+from src.real_data import build_ranked_distributions  # noqa: E402
+from src.reconciliation import load_official_db_total, reconcile  # noqa: E402
+from src.source_manifest import load_source_registry  # noqa: E402
 
 
 def _fixture_households() -> pd.DataFrame:

@@ -1,4 +1,1 @@
-Raw source files are downloaded here by the app's data loaders.
-
-Large official source files are intentionally not committed.
-
+Raw official files are downloaded here and are not tracked. See `data/sources.json` for canonical URLs, vintages, archive members, and SHA-256 hashes. Downloads use temporary files and atomic replacement after integrity validation.

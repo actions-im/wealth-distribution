@@ -17,3 +17,17 @@ def test_readme_uses_neutral_measure_names():
 
     assert "modeled comprehensive resources" in readme.lower()
     assert "the trick" not in readme.lower()
+
+
+def test_methodology_documents_required_criticism_surfaces():
+    methodology = Path("docs/methodology.md").read_text().lower()
+    for section in [
+        "scope and unit",
+        "components",
+        "exclusions",
+        "lifecycle",
+        "uncertainty",
+        "source vintage",
+        "limitations",
+    ]:
+        assert f"## {section}" in methodology
