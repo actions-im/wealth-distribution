@@ -67,7 +67,7 @@ def build_real_wealth_household_data(
     tax_rate: float,
     liquidity_weight: float,
 ) -> pd.DataFrame:
-    data = _normalize_input_rows(scf_rows)
+    data = normalize_scf_rows(scf_rows)
     data["wealth_quantile"] = assign_weighted_quantile_group(
         data["traditional_net_worth"],
         data["household_weight"],
@@ -154,7 +154,7 @@ def age_group(age: int | float) -> str:
     return "75+"
 
 
-def _normalize_input_rows(scf_rows: pd.DataFrame | Iterable[dict]) -> pd.DataFrame:
+def normalize_scf_rows(scf_rows: pd.DataFrame | Iterable[dict]) -> pd.DataFrame:
     data = pd.DataFrame(scf_rows).copy()
     data.columns = [str(column).strip().lower() for column in data.columns]
 
@@ -165,11 +165,23 @@ def _normalize_input_rows(scf_rows: pd.DataFrame | Iterable[dict]) -> pd.DataFra
         raise ValueError(f"SCF rows are missing required columns: {missing}")
 
     if "scf_row_id" not in data.columns:
-        data["scf_row_id"] = range(1, len(data) + 1)
+        data["scf_row_id"] = data["y1"] if "y1" in data.columns else range(1, len(data) + 1)
+    if "family_id" not in data.columns:
+        if "yy1" in data.columns:
+            data["family_id"] = data["yy1"]
+        else:
+            data["family_id"] = data["scf_row_id"]
+    if "implicate" not in data.columns:
+        if "y1" in data.columns:
+            data["implicate"] = pd.to_numeric(data["y1"], errors="coerce") % 10
+        else:
+            data["implicate"] = 1
 
     normalized = pd.DataFrame(
         {
             "scf_row_id": data["scf_row_id"],
+            "family_id": pd.to_numeric(data["family_id"], errors="coerce"),
+            "implicate": pd.to_numeric(data["implicate"], errors="coerce"),
             "household_weight": pd.to_numeric(data["wgt"], errors="coerce"),
             "age": pd.to_numeric(data["age"], errors="coerce"),
             "labor_income": pd.to_numeric(data["wageinc"], errors="coerce").clip(lower=0),
