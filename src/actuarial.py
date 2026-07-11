@@ -83,9 +83,10 @@ def survival_weighted_annuity(
     survival = conditional_survival(lives_by_age, current_age, final_age)
     first_offset = claiming_age - current_age
     payment_count = final_age - claiming_age + 1
+    first_survival_index = max(first_offset, 1)
     return present_value_stream(
         [annual_payment] * payment_count,
         discount_rate,
-        survival=survival[first_offset:],
+        survival=survival[first_survival_index : first_survival_index + payment_count],
         start_period=max(first_offset, 1),
     )

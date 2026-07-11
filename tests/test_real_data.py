@@ -1,9 +1,12 @@
 import pytest
 
 from src.real_data import (
+    ComprehensiveHouseholdInput,
     aggregate_real_country_distribution_by_quantile,
+    build_comprehensive_household,
     build_real_wealth_household_data,
 )
+from src.config import ModelAssumptions
 
 
 def test_real_household_data_assigns_weighted_scf_quantiles():
@@ -94,6 +97,40 @@ def test_discounted_wage_income_reduces_top_concentration():
     top_one = distribution[distribution["wealth_quantile"].isin(["99-99.9%", "Top 0.1%"])]
 
     assert top_one["combined_real_wealth_share"].sum() < top_one["traditional_net_worth_share"].sum()
+
+
+def test_comprehensive_resources_equal_documented_components():
+    row = build_comprehensive_household(
+        ComprehensiveHouseholdInput(
+            net_worth=100,
+            accrued_labor=20,
+            continuation_labor=40,
+            accrued_social_security=30,
+            continuation_social_security=50,
+            accrued_db_pension=10,
+            continuation_db_pension=15,
+        )
+    )
+
+    assert row.defensive_resources == pytest.approx(
+        row.net_worth + row.accrued_labor + row.accrued_social_security + row.accrued_db_pension
+    )
+    assert row.continuation_resources == pytest.approx(
+        row.net_worth
+        + row.continuation_labor
+        + row.continuation_social_security
+        + row.continuation_db_pension
+    )
+
+
+def test_invalid_probability_is_rejected():
+    with pytest.raises(ValueError, match="employment_probability"):
+        ModelAssumptions(employment_probability=1.2)
+
+
+def test_model_assumptions_reject_nonpositive_real_discount_factor():
+    with pytest.raises(ValueError, match="discount_rate"):
+        ModelAssumptions(discount_rate=-1)
 
 
 def _raw_scf_rows():

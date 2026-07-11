@@ -101,7 +101,7 @@ def social_security_wealth(
 
     benefit_start_age = person.age if used_reported_benefit else max(person.claiming_age, person.age)
     benefit_offset = benefit_start_age - person.age
-    benefit_survival = list(survival)[benefit_offset:]
+    benefit_survival = list(survival)[max(benefit_offset - 1, 0) :]
     gross_benefits = present_value_stream(
         [annual_benefit] * len(benefit_survival),
         discount_rate,

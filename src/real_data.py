@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
+from dataclasses import dataclass
 from typing import Iterable
 
 import pandas as pd
 
-from src.config import AGE_BUCKETS, WEALTH_QUANTILES
-from src.human_capital import estimate_human_capital
+from src.actuarial import conditional_survival
+from src.config import AGE_BUCKETS, WEALTH_QUANTILES, ModelAssumptions
+from src.human_capital import estimate_human_capital, estimate_labor_wealth
+from src.pensions import DefinedBenefitPlan, value_defined_benefit_plan
+from src.scf_detailed import DetailedHouseholdInput, PersonInput
 from src.scf_loader import download_scf_extract, load_scf_extract
+from src.social_security import SocialSecurityPerson, social_security_wealth
 from src.weighted_stats import assign_weighted_quantile_group, weighted_median
 
 
@@ -32,6 +37,179 @@ REPORT_METRICS = [
     "combined_real_wealth",
     "liquidity_adjusted_real_wealth",
 ]
+
+
+@dataclass(frozen=True)
+class ComprehensiveHouseholdInput:
+    net_worth: float
+    accrued_labor: float
+    continuation_labor: float
+    accrued_social_security: float
+    continuation_social_security: float
+    accrued_db_pension: float
+    continuation_db_pension: float
+    exclusions: tuple[str, ...] = ()
+    source_version: str = "scf-2022"
+    assumption_version: str = "2022-baseline-v1"
+
+
+@dataclass(frozen=True)
+class ComprehensiveHouseholdRecord:
+    net_worth: float
+    accrued_labor: float
+    continuation_labor: float
+    accrued_social_security: float
+    continuation_social_security: float
+    accrued_db_pension: float
+    continuation_db_pension: float
+    defensive_resources: float
+    continuation_resources: float
+    exclusions: tuple[str, ...]
+    source_version: str
+    assumption_version: str
+
+
+def build_comprehensive_household(
+    household: ComprehensiveHouseholdInput,
+) -> ComprehensiveHouseholdRecord:
+    """Assemble auditable totals from separately valued household components."""
+    values = (
+        household.net_worth,
+        household.accrued_labor,
+        household.continuation_labor,
+        household.accrued_social_security,
+        household.continuation_social_security,
+        household.accrued_db_pension,
+        household.continuation_db_pension,
+    )
+    if any(pd.isna(value) for value in values):
+        raise ValueError("comprehensive household components cannot be missing")
+    defensive = (
+        household.net_worth
+        + household.accrued_labor
+        + household.accrued_social_security
+        + household.accrued_db_pension
+    )
+    continuation = (
+        household.net_worth
+        + household.continuation_labor
+        + household.continuation_social_security
+        + household.continuation_db_pension
+    )
+    return ComprehensiveHouseholdRecord(
+        **household.__dict__,
+        defensive_resources=float(defensive),
+        continuation_resources=float(continuation),
+    )
+
+
+def value_detailed_household(
+    *,
+    net_worth: float,
+    household: DetailedHouseholdInput,
+    life_table: dict[str, dict[int, float]],
+    assumptions: ModelAssumptions = ModelAssumptions(),
+) -> ComprehensiveHouseholdRecord:
+    """Value person-level SCF inputs and retain explicit model exclusions."""
+    exclusions: set[str] = set()
+
+    def future_survival(person: PersonInput) -> list[float]:
+        if person.sex not in life_table:
+            exclusions.add(f"unknown_sex_{person.sex}")
+            return []
+        curve = conditional_survival(life_table[person.sex], person.age)
+        return curve[1:]
+
+    people = [("respondent", household.respondent)]
+    if household.spouse is not None:
+        people.append(("spouse", household.spouse))
+    survival = {owner: future_survival(person) for owner, person in people}
+
+    labor_values = {"defensive": 0.0, "continuation": 0.0}
+    for owner, person in people:
+        if not survival[owner]:
+            exclusions.add(f"labor_missing_survival_{owner}")
+            continue
+        for mode in labor_values:
+            labor_values[mode] += estimate_labor_wealth(
+                current_income=person.annual_wage,
+                age=person.age,
+                retirement_age=assumptions.retirement_age,
+                survival=survival[owner],
+                reentry_income=person.annual_wage,
+                reentry_probability=assumptions.reentry_probability,
+                employment_probability=assumptions.employment_probability,
+                wage_growth=assumptions.wage_growth,
+                discount_rate=assumptions.discount_rate,
+                tax_rate=assumptions.tax_rate,
+                mode=mode,
+            )
+    accrued_labor = labor_values["defensive"]
+    continuation_labor = labor_values["continuation"]
+
+    social_values = {"accrued": 0.0, "continuation": 0.0}
+    for owner, person in people:
+        if not survival[owner]:
+            exclusions.add(f"social_security_missing_survival_{owner}")
+            continue
+        career_years = min(max(person.age - 22, 0), 35)
+        ss_person = SocialSecurityPerson(
+            age=person.age,
+            annual_wage=person.annual_wage,
+            annual_reported_benefit=person.annual_social_security,
+            career_years=career_years,
+            claiming_age=assumptions.retirement_age,
+        )
+        for mode in social_values:
+            result = social_security_wealth(
+                ss_person,
+                mode=mode,
+                survival=survival[owner],
+                discount_rate=assumptions.discount_rate,
+                payable_factor=assumptions.payable_benefit_factor,
+                retirement_age=assumptions.retirement_age,
+            )
+            social_values[mode] += result.net
+            exclusions.update(result.exclusions)
+
+    pension_values = {"accrued": 0.0, "continuation": 0.0}
+    for pension in household.db_pensions:
+        person = household.spouse if pension.owner == "spouse" else household.respondent
+        if person is None or not survival.get(pension.owner):
+            exclusions.add(f"pension_missing_owner_or_survival_{pension.owner}")
+            continue
+        remaining = max(assumptions.retirement_age - person.age, 0)
+        career = max(person.age - 22, 0)
+        accrued_fraction = 1.0 if pension.status == "current" else career / max(career + remaining, 1)
+        plan = DefinedBenefitPlan(
+            annual_benefit=pension.annual_benefit,
+            current_age=person.age,
+            claiming_age=pension.claiming_age,
+            accrued_fraction=min(max(accrued_fraction, 0), 1),
+        )
+        for mode in pension_values:
+            result = value_defined_benefit_plan(
+                plan,
+                mode=mode,
+                survival=survival[pension.owner],
+                discount_rate=assumptions.discount_rate,
+            )
+            pension_values[mode] += result.present_value
+            exclusions.update(result.exclusions)
+
+    return build_comprehensive_household(
+        ComprehensiveHouseholdInput(
+            net_worth=float(net_worth),
+            accrued_labor=accrued_labor,
+            continuation_labor=continuation_labor,
+            accrued_social_security=social_values["accrued"],
+            continuation_social_security=social_values["continuation"],
+            accrued_db_pension=pension_values["accrued"],
+            continuation_db_pension=pension_values["continuation"],
+            exclusions=tuple(sorted(exclusions)),
+            assumption_version=assumptions.version,
+        )
+    )
 
 
 def load_real_wealth_household_data(

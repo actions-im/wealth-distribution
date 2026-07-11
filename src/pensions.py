@@ -53,9 +53,10 @@ def defined_benefit_wealth(
         return 0.0
 
     benefit_offset = max(int(claiming_age) - int(current_age), 0)
-    if benefit_offset >= len(survival):
+    first_survival_index = max(benefit_offset - 1, 0)
+    if first_survival_index >= len(survival):
         return 0.0
-    benefit_survival = list(survival)[benefit_offset:]
+    benefit_survival = list(survival)[first_survival_index:]
     payments = [
         annual_benefit * (1 + real_cola) ** period
         for period in range(len(benefit_survival))
