@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 
 import pandas as pd
 
+from src.source_manifest import load_source_registry
+
 
 FED_DFA_ZIP_URL = "https://www.federalreserve.gov/releases/z1/dataviz/download/zips/dfa.zip"
 SCF_2022_EXTRACT_ZIP_URL = "https://www.federalreserve.gov/econres/files/scfp2022s.zip"
@@ -17,6 +19,9 @@ STREAMLIT_QUICKSTART_URL = (
 FED_EXPECTED_FUTURE_INCOME_URL = "https://www.federalreserve.gov/pubs/ifdp/2009/971/ifdp971.htm"
 FED_HUMAN_WEALTH_MODEL_URL = "https://www.federalreserve.gov/pubs/feds/2010/201056/index.html"
 FED_COMPREHENSIVE_WEALTH_URL = "https://www.federalreserve.gov/econres/feds/files/2026007pap.pdf"
+
+
+OFFICIAL_SOURCES = load_source_registry()
 
 
 def source_table() -> pd.DataFrame:

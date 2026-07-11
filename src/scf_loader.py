@@ -4,17 +4,26 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pandas as pd
-import requests
 
 from src.data_sources import SCF_2022_EXTRACT_ZIP_URL
+from src.source_manifest import SourceSpec, download_artifact
 
 
 def download_scf_extract(raw_dir: Path = Path("data/raw"), url: str = SCF_2022_EXTRACT_ZIP_URL) -> Path:
-    raw_dir.mkdir(parents=True, exist_ok=True)
-    destination = raw_dir / "scf_2022_extract.zip"
-    response = requests.get(url, timeout=60)
-    response.raise_for_status()
-    destination.write_bytes(response.content)
+    spec = SourceSpec(
+        key="scf_summary",
+        provider="Federal Reserve Board",
+        url=url,
+        vintage="2022 public summary extract",
+        filename="scf_2022_extract.zip",
+        sha256=(
+            "3bb4d890ae2463ff6039ec7692e375f544dd98a55a37ca2cb2340354b9cc9d80"
+            if url == SCF_2022_EXTRACT_ZIP_URL
+            else None
+        ),
+        archive_member="rscfp2022.dta",
+    )
+    destination, _record = download_artifact(spec, raw_dir, timeout=60)
     return destination
 
 
@@ -38,4 +47,3 @@ def _normalize_scf_columns(data: pd.DataFrame) -> pd.DataFrame:
     normalized = data.copy()
     normalized.columns = [column.strip().lower() for column in normalized.columns]
     return normalized
-

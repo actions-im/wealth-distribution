@@ -1,0 +1,36 @@
+{
+  "scf_summary": {
+    "provider": "Federal Reserve Board",
+    "url": "https://www.federalreserve.gov/econres/files/scfp2022s.zip",
+    "vintage": "2022 public summary extract, updated 2024-04-03",
+    "filename": "scf_2022_extract.zip",
+    "archive_member": "rscfp2022.dta",
+    "sha256": "3bb4d890ae2463ff6039ec7692e375f544dd98a55a37ca2cb2340354b9cc9d80"
+  },
+  "scf_full": {
+    "provider": "Federal Reserve Board",
+    "url": "https://www.federalreserve.gov/econres/files/scf2022s.zip",
+    "vintage": "2022 full public dataset, updated 2023-10-18",
+    "filename": "scf_2022_full.zip",
+    "sha256": "409e6811df895766d50b2f597c10b1b3c5813e7d3e0e45d910ad26c0cb07f4eb"
+  },
+  "scf_replicate_weights": {
+    "provider": "Federal Reserve Board",
+    "url": "https://www.federalreserve.gov/econres/files/scf2022rw1s.zip",
+    "vintage": "2022 replicate weights, updated 2023-10-18",
+    "filename": "scf_2022_replicate_weights.zip",
+    "sha256": "0135b0bcc2858bd326010ef16c1ca6c7c10f55e53c93e4f3b92fd408b342f239"
+  },
+  "ssa_life_male": {
+    "provider": "Social Security Administration Office of the Chief Actuary",
+    "url": "https://www.ssa.gov/OACT/HistEst/PerLifeTables/2022/PerLifeTables_M_Alt2_TR2022.csv",
+    "vintage": "2022 Trustees Report projected period life tables, male",
+    "filename": "ssa_period_life_male_2022.csv"
+  },
+  "ssa_life_female": {
+    "provider": "Social Security Administration Office of the Chief Actuary",
+    "url": "https://www.ssa.gov/OACT/HistEst/PerLifeTables/2022/PerLifeTables_F_Alt2_TR2022.csv",
+    "vintage": "2022 Trustees Report projected period life tables, female",
+    "filename": "ssa_period_life_female_2022.csv"
+  }
+}
