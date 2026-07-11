@@ -7,7 +7,7 @@ from src.real_data import (
 )
 
 
-def test_executive_share_table_focuses_on_priced_vs_full_distribution():
+def test_executive_share_table_uses_neutral_measure_names():
     data = build_real_wealth_household_data(
         [
             {"wgt": 500, "age": 30, "wageinc": 55_000, "networth": 30_000},
@@ -29,13 +29,13 @@ def test_executive_share_table_focuses_on_priced_vs_full_distribution():
 
     assert list(table.columns) == [
         "Quantile",
-        "Priced wealth share",
-        "Full wealth share",
+        "Conventional net-worth share",
+        "Net worth plus modeled labor share",
         "Change",
         "Source",
     ]
-    assert table.loc[0, "Priced wealth share"].endswith("%")
-    assert table.loc[0, "Full wealth share"].endswith("%")
+    assert table.loc[0, "Conventional net-worth share"].endswith("%")
+    assert table.loc[0, "Net worth plus modeled labor share"].endswith("%")
     assert table["Change"].str.endswith("%").all()
     assert table["Source"].str.contains("SCF").all()
 

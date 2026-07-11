@@ -10,9 +10,16 @@ from src.actuarial import conditional_survival
 from src.config import AGE_BUCKETS, WEALTH_QUANTILES, ModelAssumptions
 from src.human_capital import estimate_human_capital, estimate_labor_wealth
 from src.pensions import DefinedBenefitPlan, value_defined_benefit_plan
-from src.scf_detailed import DetailedHouseholdInput, PersonInput
+from src.scf_detailed import (
+    DetailedHouseholdInput,
+    PersonInput,
+    build_detailed_household_input,
+    load_detailed_scf,
+)
 from src.scf_loader import download_scf_extract, load_scf_extract
 from src.social_security import SocialSecurityPerson, social_security_wealth
+from src.source_manifest import download_artifact, load_source_registry
+from src.ssa_loader import load_ssa_period_life_table
 from src.weighted_stats import (
     assign_weighted_quantile_group,
     weighted_median,
@@ -252,6 +259,36 @@ def build_ranked_distributions(
     return distributions
 
 
+def aggregate_ranked_resource_distributions(data: pd.DataFrame) -> pd.DataFrame:
+    """Return comparable shares after independently ranking each measure."""
+    ranked = build_ranked_distributions(data)
+    metrics = {
+        "conventional": "net_worth",
+        "defensive": "defensive_resources",
+        "continuation": "continuation_resources",
+    }
+    rows: list[dict[str, object]] = []
+    for measure, frame in ranked.items():
+        metric = metrics[measure]
+        weighted_values = frame[metric] * frame["household_weight"]
+        grand_total = weighted_values.sum()
+        for group_name, _, _ in WEALTH_QUANTILE_GROUPS:
+            selected = frame["rank_group"] == group_name
+            group_total = weighted_values[selected].sum()
+            rows.append(
+                {
+                    "measure": measure,
+                    "rank_basis": metric,
+                    "rank_group": group_name,
+                    "household_share": frame.loc[selected, "household_weight"].sum()
+                    / frame["household_weight"].sum(),
+                    "weighted_total": group_total,
+                    "wealth_share": group_total / grand_total if grand_total else 0.0,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
 def load_real_wealth_household_data(
     discount_rate: float,
     wage_growth: float,
@@ -274,6 +311,53 @@ def load_real_wealth_household_data(
         tax_rate=tax_rate,
         liquidity_weight=liquidity_weight,
     )
+
+
+def load_comprehensive_household_data(
+    assumptions: ModelAssumptions,
+    raw_dir: Path = Path("data/raw"),
+) -> pd.DataFrame:
+    """Load pinned SCF summary/full inputs and value all modeled components."""
+    summary_path = raw_dir / "scf_2022_extract.zip"
+    if not summary_path.exists():
+        summary_path = download_scf_extract(raw_dir=raw_dir)
+    full_path = raw_dir / "scf_2022_full.zip"
+    if not full_path.exists():
+        full_path, _ = download_artifact(load_source_registry()["scf_full"], raw_dir)
+
+    summary = normalize_scf_rows(load_scf_extract(summary_path)).set_index("scf_row_id")
+    detailed = load_detailed_scf(full_path)
+    life_table = load_ssa_period_life_table()
+    rows: list[dict[str, object]] = []
+    unmatched = 0
+    for values in detailed.to_dict("records"):
+        household = build_detailed_household_input(values)
+        if household.row_id not in summary.index:
+            unmatched += 1
+            continue
+        base = summary.loc[household.row_id]
+        record = value_detailed_household(
+            net_worth=base["traditional_net_worth"],
+            household=household,
+            life_table=life_table,
+            assumptions=assumptions,
+        )
+        rows.append(
+            {
+                "household_id": household.row_id,
+                "family_id": household.family_id,
+                "implicate": household.implicate,
+                "household_weight": float(base["household_weight"]),
+                "age": household.respondent.age,
+                **record.__dict__,
+                "exclusions": ";".join(record.exclusions),
+            }
+        )
+    if unmatched:
+        raise ValueError(f"{unmatched} detailed SCF rows did not match the summary extract")
+    if not rows:
+        raise ValueError("no comprehensive SCF household records were produced")
+    return pd.DataFrame(rows)
 
 
 def build_real_wealth_household_data(

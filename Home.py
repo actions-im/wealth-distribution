@@ -1,100 +1,119 @@
 from __future__ import annotations
 
+import plotly.express as px
 import streamlit as st
 
-from src.app_data import load_report_household_data
-from src.charts import single_distribution_share_bar
+from src.app_data import load_comprehensive_report_data
 from src.formatting import percent
-from src.provenance import build_number_source_table, chart_source_caption, table_source_note
-from src.real_data import (
-    SCF_2022_DATA_NOTE,
-    aggregate_real_country_distribution_by_quantile,
-)
-from src.reporting import build_detail_wealth_table, build_executive_share_table
+from src.real_data import aggregate_ranked_resource_distributions
 from src.ui import methodology_expander, render_assumption_sidebar
 
 
-st.set_page_config(page_title="Real Wealth Distribution", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title="Comprehensive Household Resources",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
 assumptions = render_assumption_sidebar()
-data = load_report_household_data(
+data = load_comprehensive_report_data(
     discount_rate=assumptions["discount_rate"],
     wage_growth=assumptions["wage_growth"],
     retirement_age=assumptions["retirement_age"],
     employment_probability=assumptions["employment_probability"],
+    reentry_probability=assumptions["reentry_probability"],
     tax_rate=assumptions["tax_rate"],
-    liquidity_weight=assumptions["liquidity_weight"],
+    payable_benefit_factor=assumptions["payable_benefit_factor"],
 )
-country_distribution = aggregate_real_country_distribution_by_quantile(data)
+distribution = aggregate_ranked_resource_distributions(data)
 
-st.title("The Standard Wealth Debate Compares Mismatched Ledgers")
-st.caption("Stock wealth already prices future cash flows. Labor wealth is usually counted as zero.")
-
+st.title("Conventional Wealth and Comprehensive Household Resources")
+st.caption(
+    "2022 Survey of Consumer Finances families · each measure ranked independently · "
+    "modeled values are nonmarketable resources, not official Federal Reserve wealth statistics"
+)
 st.markdown(
-    "The usual wealth inequality argument compares **future money embedded in asset prices** with "
-    "**only present balance-sheet wealth** for everyone else. A share of stock wealth is valuable because "
-    "markets capitalize expected future corporate cash flows. Future wages are also economically valuable, "
-    "but standard wealth statistics implicitly assign them a value of **$0**. This report applies the same "
-    "present-value logic to future earnings so the comparison is closer to apples to apples."
+    "Conventional net worth measures owned assets minus liabilities. This report also asks a different "
+    "question: how are modeled lifetime economic resources distributed when expected labor earnings, "
+    "Social Security, and defined-benefit pensions are valued explicitly? The measures are shown together, "
+    "with their differences and limitations visible."
 )
 
-top_one = country_distribution[
-    country_distribution["wealth_quantile"].isin(["99-99.9%", "Top 0.1%"])
-]
-bottom_ninety = country_distribution[
-    country_distribution["wealth_quantile"].isin(["Bottom 50%", "50-90%"])
-]
 
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Top 1% priced wealth share", percent(top_one["traditional_net_worth_share"].sum()))
-col2.metric("Top 1% full wealth share", percent(top_one["combined_real_wealth_share"].sum()))
-col3.metric("Bottom 90% priced wealth share", percent(bottom_ninety["traditional_net_worth_share"].sum()))
-col4.metric("Bottom 90% full wealth share", percent(bottom_ninety["combined_real_wealth_share"].sum()))
-st.caption(chart_source_caption())
+def share(measure: str, groups: list[str]) -> float:
+    selected = distribution[
+        (distribution["measure"] == measure) & distribution["rank_group"].isin(groups)
+    ]
+    return float(selected["wealth_share"].sum())
 
-st.subheader("The Apples-to-Apples Adjustment")
-left, right = st.columns(2)
-with left:
-    st.plotly_chart(
-        single_distribution_share_bar(
-            country_distribution,
-            "traditional_net_worth_share",
-            "Priced wealth: future labor earnings = $0",
-            "#8f1d14",
-        )
+
+top_groups = ["99-99.9%", "Top 0.1%"]
+bottom_groups = ["Bottom 50%", "50-90%"]
+columns = st.columns(3)
+columns[0].metric("Top 1% · conventional net worth", percent(share("conventional", top_groups)))
+columns[1].metric("Top 1% · Defensive accrued resources", percent(share("defensive", top_groups)))
+columns[2].metric("Top 1% · continuation resources", percent(share("continuation", top_groups)))
+columns = st.columns(3)
+columns[0].metric("Bottom 90% · conventional net worth", percent(share("conventional", bottom_groups)))
+columns[1].metric(
+    "Bottom 90% · Defensive accrued resources", percent(share("defensive", bottom_groups))
+)
+columns[2].metric("Bottom 90% · continuation resources", percent(share("continuation", bottom_groups)))
+
+st.caption(
+    f"Baseline: {assumptions['discount_rate']:.1%} real discount rate; "
+    f"{assumptions['retirement_age']} retirement age; "
+    f"{assumptions['payable_benefit_factor']:.0%} Social Security payable factor."
+)
+
+chart_data = distribution.copy()
+chart_data["Measure"] = chart_data["measure"].map(
+    {
+        "conventional": "Conventional net worth",
+        "defensive": "Defensive accrued resources",
+        "continuation": "Continuation resources",
+    }
+)
+figure = px.bar(
+    chart_data,
+    x="rank_group",
+    y="wealth_share",
+    color="Measure",
+    barmode="group",
+    labels={"rank_group": "Measure-specific weighted rank", "wealth_share": "Share"},
+    category_orders={
+        "rank_group": ["Bottom 50%", "50-90%", "90-99%", "99-99.9%", "Top 0.1%"]
+    },
+)
+figure.update_yaxes(tickformat=".0%")
+st.plotly_chart(figure, width="stretch")
+st.caption(
+    "Source: Federal Reserve 2022 SCF summary and full public files; SSA 2019 period life table "
+    "published with the 2022 Trustees Report; model calculations in this repository."
+)
+
+with st.expander("Definitions, components, and exclusions"):
+    st.markdown(
+        "- **Conventional net worth:** SCF assets minus liabilities. Retirement account balances are already included.\n"
+        "- **Defensive accrued resources:** conventional net worth plus zero-real-growth labor resources, "
+        "accrued Social Security, and accrued DB benefits. Social Security is net of modeled future employee "
+        "contributions and the selected payable factor.\n"
+        "- **Continuation resources:** conventional net worth plus labor earnings and retirement claims under "
+        "continued earnings and pension accrual through retirement.\n"
+        "- **Excluded:** unsupported Social Security spousal/survivor benefits and DB survivor annuities without "
+        "joint-life inputs. Defined-contribution balances are never added twice."
     )
-with right:
-    st.plotly_chart(
-        single_distribution_share_bar(
-            country_distribution,
-            "combined_real_wealth_share",
-            "Full wealth: future labor earnings discounted to today",
-            "#0f766e",
-        )
-    )
-st.caption(chart_source_caption())
 
-st.table(
-    build_executive_share_table(country_distribution).set_index("Quantile"),
-)
-st.caption(table_source_note())
-
-st.markdown(
-    "The full-wealth view does **not** say human capital is liquid, tradable, or inheritable like stocks. "
-    "It says that if one side of the comparison capitalizes future cash flows, the other side should not "
-    "be forced into a present-only ledger."
+st.warning(
+    "Lifecycle composition matters. Younger families generally have more remaining labor resources and less "
+    "accumulated balance-sheet wealth. This is a cross-sectional comparison under the same lifecycle framework, "
+    "not a claim that labor resources are liquid, transferable, collateralizable, or inheritable."
 )
 
-with st.expander("Data note and detailed totals"):
+with st.expander("Normative argument (separate from the estimates)"):
     st.write(
-        f"{SCF_2022_DATA_NOTE} Dollar totals are weighted national totals and are shown in trillions."
+        "Claims about equality of rights versus equality of outcomes are political or philosophical claims. "
+        "They do not follow mechanically from these estimates, and the empirical calculations do not depend on them."
     )
-    st.table(
-        build_detail_wealth_table(country_distribution).set_index("Quantile"),
-    )
-    st.caption(table_source_note())
-
-with st.expander("Sources for every number on this page"):
-    st.table(build_number_source_table(assumptions).set_index("Number category"))
 
 methodology_expander()

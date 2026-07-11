@@ -74,12 +74,12 @@ def priced_vs_full_share_bar(data: pd.DataFrame, title: str):
         value_name="share",
     )
     labels = {
-        "traditional_net_worth_share": "Priced wealth",
-        "combined_real_wealth_share": "Full wealth",
+        "traditional_net_worth_share": "Conventional net worth",
+        "combined_real_wealth_share": "Net worth plus modeled labor",
     }
     colors = {
-        "Priced wealth": "#8f1d14",
-        "Full wealth": "#0f766e",
+        "Conventional net worth": "#8f1d14",
+        "Net worth plus modeled labor": "#0f766e",
     }
     melted["measure"] = melted["measure"].map(labels)
     fig = px.bar(

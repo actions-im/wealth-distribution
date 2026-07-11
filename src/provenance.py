@@ -15,8 +15,8 @@ COMPUTED_SCF_SOURCE = (
 
 def chart_source_caption() -> str:
     return (
-        f"Source: {COMPUTED_SCF_SOURCE}. Priced wealth uses networth x wgt. "
-        "Full wealth adds discounted positive wageinc using the sidebar assumptions."
+        f"Source: {COMPUTED_SCF_SOURCE}. Conventional net worth uses networth x wgt. "
+        "The legacy labor-only view adds discounted positive wageinc using the sidebar assumptions."
     )
 
 
@@ -51,7 +51,7 @@ def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFra
             "Method": "Sum SCF household weight field wgt within each net-worth quantile.",
         },
         {
-            "Number category": "Priced wealth dollars and shares",
+            "Number category": "Conventional net-worth dollars and shares",
             "Source": SCF_2022_DATASET_LABEL,
             "Method": "Sum networth x wgt within each quantile; divide by national weighted networth total for shares.",
         },
@@ -68,9 +68,9 @@ def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFra
             ),
         },
         {
-            "Number category": "Full wealth dollars and shares",
+            "Number category": "Legacy net-worth-plus-labor dollars and shares",
             "Source": f"{SCF_2022_DATASET_LABEL} plus sidebar assumptions",
-            "Method": "Priced wealth plus discounted future earnings; weighted by wgt for totals and shares.",
+            "Method": "Conventional net worth plus discounted future earnings; weighted by wgt for totals and shares.",
         },
         {
             "Number category": "Discount rate",

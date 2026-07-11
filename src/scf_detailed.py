@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Mapping
+from pathlib import Path
+from zipfile import ZipFile
+
+import pandas as pd
 
 
 FREQUENCY_MULTIPLIERS = {
@@ -14,6 +18,28 @@ FREQUENCY_MULTIPLIERS = {
     11: 2.0,
     12: 6.0,
 }
+
+DETAILED_COLUMNS = [
+    "y1", "yy1", "x14", "x19", "x8021", "x103", "x4112", "x4113", "x4712", "x4713",
+    "x5306", "x5307", "x5311", "x5312",
+    "x5603", "x5606", "x5607", "x5608", "x5609",
+    "x5611", "x5614", "x5615", "x5616", "x5617",
+    "x5619", "x5622", "x5623", "x5624", "x5625",
+    "x5627", "x5630", "x5631", "x5632", "x5633",
+    "x6461", "x5315", "x5317", "x5318", "x5319",
+    "x6466", "x5323", "x5325", "x5326", "x5327",
+    "x6471", "x5331", "x5333", "x5334", "x5335",
+    "x6476", "x5415", "x5417", "x5418", "x5419",
+]
+
+
+def load_detailed_scf(zip_path: str | Path) -> pd.DataFrame:
+    with ZipFile(zip_path) as archive:
+        members = [name for name in archive.namelist() if name.lower().endswith(".dta")]
+        if members != ["p22i6.dta"]:
+            raise ValueError(f"expected exact SCF member p22i6.dta, found {members}")
+        with archive.open(members[0]) as source:
+            return pd.read_stata(source, columns=DETAILED_COLUMNS, convert_categoricals=False)
 
 
 @dataclass(frozen=True)

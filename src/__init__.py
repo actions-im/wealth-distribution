@@ -1,2 +1,1 @@
-"""Core modules for the Real Wealth Distribution report."""
-
+"""Core modules for the Comprehensive Household Resources report."""

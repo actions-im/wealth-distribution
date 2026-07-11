@@ -34,7 +34,7 @@ with col1:
 with col2:
     st.plotly_chart(money_bar(age_data, "age_group", "human_capital", "Human capital"))
 with col3:
-    st.plotly_chart(money_bar(age_data, "age_group", "combined_real_wealth", "Combined real wealth"))
+    st.plotly_chart(money_bar(age_data, "age_group", "combined_real_wealth", "Net worth plus modeled labor resources"))
 st.caption(chart_source_caption())
 
 st.plotly_chart(

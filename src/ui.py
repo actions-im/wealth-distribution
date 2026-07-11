@@ -9,8 +9,8 @@ from src.provenance import assumption_source_caption
 def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[str, float | int]:
     st.sidebar.header("Assumptions")
     st.sidebar.caption(
-        "Data: Federal Reserve 2022 SCF public summary extract, weighted with SCF household weights. "
-        "Future earnings use positive SCF wage income as the labor-income proxy."
+        "Data: Federal Reserve 2022 SCF summary and full public files, SSA mortality and 2022 program "
+        "parameters, and Federal Reserve Financial Accounts pension benchmarks."
     )
     st.sidebar.caption(assumption_source_caption())
     if include_wealth_definition:
@@ -20,7 +20,7 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
                 "Traditional net worth only",
                 "Human capital only",
                 "Traditional + human capital",
-                "Liquidity-adjusted real wealth",
+                "Liquidity-adjusted labor-resource view",
             ],
         )
     else:
@@ -57,6 +57,20 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
         DEFAULT_ASSUMPTIONS["liquidity_weight"],
         step=0.05,
     )
+    reentry_probability = st.sidebar.slider(
+        "Non-earner re-entry probability",
+        0.0,
+        1.0,
+        DEFAULT_ASSUMPTIONS["reentry_probability"],
+        step=0.05,
+    )
+    payable_benefit_factor = st.sidebar.slider(
+        "Social Security payable factor",
+        0.0,
+        1.0,
+        DEFAULT_ASSUMPTIONS["payable_benefit_factor"],
+        step=0.05,
+    )
     st.sidebar.caption(SOURCE_NOTE)
     return {
         "wealth_definition": wealth_definition,
@@ -66,6 +80,8 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
         "employment_probability": employment_probability,
         "tax_rate": tax_rate,
         "liquidity_weight": liquidity_weight,
+        "reentry_probability": reentry_probability,
+        "payable_benefit_factor": payable_benefit_factor,
     }
 
 
@@ -74,23 +90,22 @@ def selected_metric(wealth_definition: str) -> str:
         "Traditional net worth only": "traditional_net_worth",
         "Human capital only": "human_capital",
         "Traditional + human capital": "combined_real_wealth",
-        "Liquidity-adjusted real wealth": "liquidity_adjusted_real_wealth",
+        "Liquidity-adjusted labor-resource view": "liquidity_adjusted_real_wealth",
     }[wealth_definition]
 
 
 def methodology_expander() -> None:
     with st.expander("Methodology and limits"):
         st.write(
-            "The central issue is a metric mismatch. Marketable assets such as equities and business "
-            "interests are priced using expectations about future cash flows. Standard wealth statistics "
-            "then compare those capitalized asset values with a household ledger where future labor earnings "
-            "are implicitly valued at zero."
+            "Conventional net worth and modeled comprehensive resources answer different questions. "
+            "The former is an asset-minus-liability balance sheet; the latter adds nontransferable expected "
+            "labor resources and modeled retirement claims. Neither should be presented as the uniquely "
+            "correct definition of wealth."
         )
         st.write(
-            "This report adds the present value of expected future labor income as nonmarketable human "
-            "capital. Human capital is not liquid, transferable, borrowable, or inheritable in the way "
-            "financial assets are. The point is to compare valuation frameworks more consistently, not to "
-            "deny measured asset inequality in standard Federal Reserve wealth statistics."
+            "Defensive accrued resources apply zero real wage growth, a policy-payability factor to Social "
+            "Security, subtract modeled future employee OASDI contributions, and value accrued DB benefits. "
+            "Continuation resources assume current earnings and pension accrual continue to retirement."
         )
         st.markdown(
             "Federal Reserve research has used related human-wealth or comprehensive-wealth concepts, "
