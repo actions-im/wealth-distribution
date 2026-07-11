@@ -2,7 +2,13 @@ import math
 
 import pytest
 
-from src.human_capital import annuity_factor, estimate_human_capital
+from src.human_capital import (
+    PersonLaborInput,
+    annuity_factor,
+    estimate_household_labor_wealth,
+    estimate_human_capital,
+    estimate_labor_wealth,
+)
 
 
 def test_annuity_factor_returns_year_count_when_growth_equals_discount_rate():
@@ -43,3 +49,60 @@ def test_estimate_human_capital_applies_employment_and_tax_adjustments():
     assert math.isfinite(actual)
     assert actual == pytest.approx(expected)
 
+
+def test_non_earner_can_reenter_employment():
+    value = estimate_labor_wealth(
+        current_income=0,
+        reentry_income=40_000,
+        reentry_probability=0.25,
+        age=30,
+        retirement_age=67,
+        survival=[1] * 37,
+    )
+
+    assert value > 0
+
+
+def test_household_labor_wealth_sums_people_after_separate_projection():
+    respondent = PersonLaborInput(age=64, current_income=50_000, sex="male")
+    spouse = PersonLaborInput(age=40, current_income=70_000, sex="female")
+    result = estimate_household_labor_wealth(
+        respondent=respondent,
+        spouse=spouse,
+        survival_by_sex={"male": [1] * 3, "female": [1] * 27},
+    )
+
+    assert result.total == pytest.approx(result.respondent + result.spouse)
+    assert result.spouse > result.respondent
+
+
+def test_survival_weights_lower_labor_value():
+    certain = estimate_labor_wealth(
+        current_income=50_000, age=64, retirement_age=67, survival=[1, 1, 1]
+    )
+    risky = estimate_labor_wealth(
+        current_income=50_000, age=64, retirement_age=67, survival=[1, 0.5, 0.25]
+    )
+
+    assert 0 < risky < certain
+
+
+def test_defensive_mode_does_not_assume_real_wage_growth():
+    defensive = estimate_labor_wealth(
+        current_income=50_000,
+        age=40,
+        retirement_age=43,
+        survival=[1, 1, 1],
+        wage_growth=0.03,
+        mode="defensive",
+    )
+    continuation = estimate_labor_wealth(
+        current_income=50_000,
+        age=40,
+        retirement_age=43,
+        survival=[1, 1, 1],
+        wage_growth=0.03,
+        mode="continuation",
+    )
+
+    assert continuation > defensive

@@ -22,5 +22,6 @@ DEFAULT_ASSUMPTIONS = {
     "employment_probability": 0.95,
     "tax_rate": 0.0,
     "liquidity_weight": 0.25,
+    "reentry_probability": 0.25,
+    "payable_benefit_factor": 0.80,
 }
-
