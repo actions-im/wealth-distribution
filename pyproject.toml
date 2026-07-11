@@ -1,9 +1,11 @@
 [project]
 name = "real-wealth-distribution"
-version = "0.1.0"
-description = "Interactive Streamlit report comparing marketable wealth with discounted future labor earnings."
+version = "0.2.0"
+description = "Interactive Streamlit report comparing conventional net worth with modeled comprehensive household resources."
 readme = "README.md"
 requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{ name = "Sergey Zelvenskiy" }]
 dependencies = [
     "numpy",
     "pandas",
@@ -23,3 +25,6 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[project.urls]
+Repository = "https://github.com/actions-im/wealth-distribution"

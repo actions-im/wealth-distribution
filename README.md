@@ -1,10 +1,10 @@
-# Real Wealth Distribution
+# Comprehensive Household Resources
 
-Interactive Streamlit report showing how standard wealth inequality arguments compare mismatched ledgers: capitalized future cash flows embedded in asset prices versus present-only household balance sheets that assign future labor earnings a value of zero.
+Interactive Streamlit report comparing conventional family net worth with modeled comprehensive resources that can include future labor earnings and retirement claims.
 
 ## Core Concept
 
-Standard wealth distribution statistics measure marketable net worth: assets minus debts. But stock and business wealth already reflect expectations about future cash flows, while future labor earnings are usually omitted from household wealth statistics. This report keeps marketable net worth intact, then adds a separate human-capital layer to compare future cash-flow claims more consistently.
+Conventional wealth statistics measure recognized assets minus liabilities. Modeled comprehensive resources answer a different question by adding explicitly estimated, nonmarketable future payment streams. The report keeps conventional SCF net worth intact and presents expanded measures as scenario-dependent alternatives rather than replacements for the standard balance-sheet measure.
 
 The app does not claim that human capital is the same as stocks, bonds, real estate, or businesses. Human capital cannot be sold, transferred, borrowed against in the same way, or inherited. The purpose is to compare valuation frameworks and lifecycle effects, not to deny measured asset inequality.
 
@@ -126,4 +126,4 @@ Dependency management uses `uv` through `pyproject.toml` and `uv.lock`. Streamli
 
 ## License
 
-Add a license before publishing the repository.
+Code is available under the Apache License 2.0. Official source datasets retain their providers' terms and attribution requirements.
