@@ -8,6 +8,14 @@ The observational unit is an SCF family in the Federal Reserve's 2022 Survey of 
 
 Each distribution is ranked independently by the measure being reported. A separately labeled fixed-conventional-rank table may be used to decompose components, but it is not called the distribution of comprehensive resources.
 
+## Public report and number audit
+
+The public Streamlit report has three views: **Home**, **Age slicing**, and **Methodology**. Home ranks all weighted SCF families separately under conventional net worth and all modeled future resources. Age slicing repeats that comparison after restricting the data to each respondent-age bucket, then independently ranks families within that bucket.
+
+Methodology is the on-site audit surface. Its Home table traces every chart resource share, weighted total, family share, and percentage-point change. Its Age slicing table traces the same plotted values as well as every visible panel caption: the weighted SCF family count and all-modeled-resources total. These audit rows are produced from the same live calculation output that drives the charts; they state a formula, source fields, source keys, and whether the value is computed from SCF microdata or model-derived.
+
+For all national totals and age-bucket counts, the SCF family weight `WGT` is applied. A chart's resource share is the weighted value in its independently ranked group divided by the corresponding measure's weighted total. An age-panel count is the sum of `WGT` in its age bucket; its all-modeled-resources total is the sum of `continuation_resources × WGT` in that bucket.
+
 ## Components
 
 ### Conventional net worth
@@ -73,6 +81,14 @@ capacity_j = NETWORTH_j × P(death within H years | respondent age, sex)
 ```
 
 The mortality probability comes from the SSA period life table. Weighted claims and capacities are summed, the funded amount is `min(claims, capacity)`, and proportional scales give equal weighted recipient credits and donor reserves. This component reallocates SCF expectation field values rather than creating national wealth. Conventional net worth remains unchanged.
+
+Before Home, Age slicing, or Methodology reports continuation resources, the application checks the conservation identity
+
+```text
+sum(WGT × recipient credit) = sum(WGT × donor reserve)
+```
+
+within the larger of one cent and one part in 10^12. This permits only floating-point rounding noise, not a material unreserved credit.
 
 The public SCF does not link recipient to donor families, so this is not a prediction of an actual parent-child transfer. It is neither current legal ownership nor a guaranteed transfer, and it is not a legal claim. Estate taxes, care costs, consumption, gifts, charity, siblings, and unobserved heirs are not modeled. No future return is added for an inherited asset already valued on the current owner's balance sheet.
 

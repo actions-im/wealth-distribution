@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src import provenance
 from src.config import DEFAULT_ASSUMPTIONS
 from src.provenance import (
     ASSUMPTION_SOURCE,
@@ -12,7 +13,7 @@ from src.provenance import (
     chart_source_caption,
 )
 from src.real_data import SCF_2022_DATASET_LABEL
-from src.reporting import build_detail_wealth_table, build_executive_share_table
+from src.reporting import AGE_SHIFT_BUCKETS, build_detail_wealth_table, build_executive_share_table
 
 
 def test_report_tables_include_source_column(real_distribution):
@@ -171,6 +172,23 @@ def test_shift_number_audit_uses_live_values_not_static_copy():
     assert row["Value"] == 0.12
 
 
+def test_age_shift_number_audit_covers_chart_and_panel_summary_values():
+    audit = provenance.build_age_shift_number_audit(
+        _age_shift_data(), DEFAULT_ASSUMPTIONS
+    )
+
+    assert set(audit["Age bucket"].astype(str)) == set(AGE_SHIFT_BUCKETS)
+    assert set(audit["Report view"]) == {"Age slicing"}
+    assert (audit["Displayed number"] == "Weighted SCF family count").sum() == 6
+    assert (audit["Displayed number"] == "All modeled resources total").sum() == 6
+    assert audit["Formula"].str.len().gt(0).all()
+    assert audit["Source fields"].str.len().gt(0).all()
+    assert audit["Source keys"].str.len().gt(0).all()
+    assert audit["Classification"].str.len().gt(0).all()
+    assert audit["Displayed number"].str.contains("resource share").sum() == 48
+    assert audit["Displayed number"].str.contains("percentage-point change").sum() == 24
+
+
 def _shift_data():
     rows = []
     conventional = [0.02, 0.24, 0.39, 0.35]
@@ -199,3 +217,14 @@ def _shift_data():
                 }
             )
     return pd.DataFrame(rows)
+
+
+def _age_shift_data():
+    panels = []
+    for index, age_bucket in enumerate(AGE_SHIFT_BUCKETS, start=1):
+        panel = _shift_data().copy()
+        panel["age_group"] = age_bucket
+        panel["weighted_family_count"] = index * 1_000_000
+        panel["all_resources_total"] = index * 10e12
+        panels.append(panel)
+    return pd.concat(panels, ignore_index=True)

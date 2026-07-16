@@ -6,9 +6,14 @@ import pandas as pd
 import streamlit as st
 
 from src.app_data import load_comprehensive_report_data
-from src.provenance import build_component_methodology_table, build_shift_number_audit
+from src.provenance import (
+    build_age_shift_number_audit,
+    build_component_methodology_table,
+    build_shift_number_audit,
+)
 from src.real_data import aggregate_ranked_resource_distributions
 from src.reporting import (
+    build_age_distribution_shift_data,
     build_distribution_shift_data,
     validate_inheritance_reallocation_conservation,
 )
@@ -32,11 +37,22 @@ validate_inheritance_reallocation_conservation(data)
 distribution = aggregate_ranked_resource_distributions(data)
 shift_data = build_distribution_shift_data(distribution)
 number_audit = build_shift_number_audit(shift_data, assumptions)
+age_shift_data = build_age_distribution_shift_data(data)
+age_number_audit = build_age_shift_number_audit(age_shift_data, assumptions)
 
 st.title("Methodology and number audit")
 st.caption(
-    "Every home-page value below is recalculated from the active sidebar assumptions. Official source "
+    "Every report value below is recalculated from the active sidebar assumptions. Official source "
     "inputs are separated from model-derived estimates."
+)
+
+st.subheader("Scope, weighting, and ranking")
+st.write(
+    "The observation is an SCF family. Monetary values are 2022 dollars, and the SCF family weight "
+    "WGT produces weighted national totals and family counts. Conventional net worth and all modeled "
+    "future resources are ranked independently, so the same rank interval does not contain a fixed set "
+    "of families across the two measures. Age-slicing panels apply the same rule after restricting the "
+    "data to the respondent-age bucket."
 )
 
 st.subheader("Measure definitions")
@@ -66,10 +82,10 @@ st.caption(
     "distribution, not a fixed set of households flowing from one state to another."
 )
 
-st.subheader("Every displayed number")
+st.subheader("Home distribution audit")
 st.write(
-    "This table covers the resource shares printed in the bars, weighted totals and household shares "
-    "shown on hover, and every percentage-point change printed below the plot."
+    "This table covers every Home chart value: resource shares printed in the bars, weighted totals and "
+    "family shares shown on hover, and each percentage-point change."
 )
 
 
@@ -80,10 +96,13 @@ def format_audit_value(value: float, unit: str) -> str:
         return f"${value / 1e12:,.2f}T"
     if unit == "percentage points":
         return f"{value:+.1f} pp".replace("-", "−")
+    if unit == "weighted SCF families":
+        return f"{value / 1_000_000:,.1f}M"
     return f"{value:,.3f}"
 
 
 audit_display = number_audit.copy()
+audit_display.insert(0, "Report view", "Home")
 audit_display.insert(
     1,
     "Displayed value",
@@ -96,6 +115,33 @@ audit_display.insert(
 )
 st.dataframe(
     audit_display.drop(columns=["Value"]),
+    hide_index=True,
+    width="stretch",
+    column_config={
+        "Displayed number": st.column_config.TextColumn(width="large"),
+        "Formula": st.column_config.TextColumn(width="large"),
+        "Source fields": st.column_config.TextColumn(width="large"),
+    },
+)
+
+st.subheader("Age slicing number audit")
+st.write(
+    "This table traces every age-panel chart value and its panel caption: weighted SCF family count "
+    "and all modeled resources total. Each panel is independently ranked within its respondent-age bucket."
+)
+age_audit_display = age_number_audit.copy()
+age_audit_display.insert(
+    3,
+    "Displayed value",
+    [
+        format_audit_value(float(value), str(unit))
+        for value, unit in zip(
+            age_audit_display["Value"], age_audit_display["Unit"], strict=True
+        )
+    ],
+)
+st.dataframe(
+    age_audit_display.drop(columns=["Value"]),
     hide_index=True,
     width="stretch",
     column_config={
@@ -145,6 +191,15 @@ for key, label in assumption_labels.items():
         }
     )
 st.dataframe(pd.DataFrame(assumption_rows), hide_index=True, width="stretch")
+
+st.subheader("Inheritance conservation")
+st.info(
+    "The continuation-resource calculation enforces weighted credits = weighted donor reserves: "
+    "sum(WGT × recipient credit) = sum(WGT × donor reserve), within a one-cent or one-part-in-10^12 "
+    "floating-point tolerance. Recipient claims are funded only up to min(claims, capacity), so the "
+    "constrained aggregate reallocation does not create national wealth.",
+    icon=":material/account_balance:",
+)
 
 st.subheader("Double-count protection")
 st.info(
@@ -196,4 +251,14 @@ st.dataframe(
 st.caption(
     "Repository references: docs/methodology.md contains the long-form limitations; "
     "data/sources.json is the machine-readable source registry."
+)
+
+st.subheader("Reproduction")
+st.code(
+    "uv run python scripts/reproduce_report.py --fixture --output-dir build/report",
+    language="bash",
+)
+st.caption(
+    "The fixture validates code paths and output contracts. The Streamlit report loads pinned real SCF "
+    "inputs for point estimates."
 )

@@ -4,19 +4,23 @@ from streamlit.testing.v1 import AppTest
 
 
 def test_methodology_page_renders_complete_audit_sections():
-    app = AppTest.from_file("pages/07_Methodology.py", default_timeout=40).run(timeout=40)
+    app = AppTest.from_file("app_pages/methodology.py", default_timeout=40).run(timeout=40)
 
     assert not app.exception
     assert app.title[0].value == "Methodology and number audit"
     headings = {item.value for item in app.subheader}
     assert {
+        "Scope, weighting, and ranking",
         "Measure definitions",
-        "Every displayed number",
+        "Home distribution audit",
+        "Age slicing number audit",
         "Component formulas",
         "Current assumptions",
+        "Inheritance conservation",
         "Double-count protection",
         "Exclusions and limitations",
         "Official sources",
+        "Reproduction",
     } <= headings
     visible_text = " ".join(
         [item.value for item in app.markdown]
@@ -24,7 +28,14 @@ def test_methodology_page_renders_complete_audit_sections():
         + [item.value for item in app.info]
         + [item.value for item in app.warning]
     )
+    assert "SCF family" in visible_text
+    assert "2022 dollars" in visible_text
+    assert "WGT" in visible_text
     assert "independently ranked" in visible_text
+    assert "min(claims, capacity)" in visible_text
+    assert "weighted credits" in visible_text
+    assert "weighted donor reserves" in visible_text
+    assert "point estimates" in visible_text
     assert "not added again" in visible_text
     assert "model-derived" in visible_text
     assert "constrained aggregate reallocation" in visible_text
@@ -35,8 +46,9 @@ def test_methodology_page_renders_complete_audit_sections():
 
 
 def test_methodology_page_configures_clickable_source_urls():
-    source = Path("pages/07_Methodology.py").read_text()
+    source = Path("app_pages/methodology.py").read_text()
 
     assert 'st.column_config.LinkColumn("Canonical URL")' in source
     assert "build_shift_number_audit" in source
+    assert "build_age_shift_number_audit" in source
     assert "build_component_methodology_table" in source

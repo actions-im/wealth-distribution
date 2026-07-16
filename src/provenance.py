@@ -127,6 +127,88 @@ def build_shift_number_audit(
     return audit
 
 
+def build_age_shift_number_audit(
+    age_shift_data: pd.DataFrame, assumptions: dict[str, float | int]
+) -> pd.DataFrame:
+    """Trace every chart and panel-summary value on the Age slicing page."""
+    required = {
+        "age_group",
+        "weighted_family_count",
+        "all_resources_total",
+        "group",
+        "state",
+        "share",
+        "weighted_total",
+        "household_share",
+        "rank_basis",
+        "conventional_share",
+        "future_resources_share",
+        "change_pp",
+    }
+    missing = required - set(age_shift_data.columns)
+    if missing:
+        raise ValueError(f"age-shift number audit is missing columns: {sorted(missing)}")
+    if age_shift_data.empty or age_shift_data["age_group"].isna().any():
+        raise ValueError("age-shift number audit requires non-empty age buckets")
+
+    audits: list[pd.DataFrame] = []
+    for age_bucket, panel in age_shift_data.groupby(
+        "age_group", observed=True, sort=False
+    ):
+        values = panel[["weighted_family_count", "all_resources_total"]].drop_duplicates()
+        if len(values) != 1:
+            raise ValueError(
+                "age-shift number audit requires one panel summary per age bucket"
+            )
+
+        panel_audit = build_shift_number_audit(panel, assumptions).copy()
+        panel_audit.insert(0, "Report view", "Age slicing")
+        panel_audit.insert(1, "Age bucket", str(age_bucket))
+        summary = values.iloc[0]
+        summary_rows = pd.DataFrame(
+            [
+                {
+                    "Report view": "Age slicing",
+                    "Age bucket": str(age_bucket),
+                    "Displayed number": "Weighted SCF family count",
+                    "Value": float(summary["weighted_family_count"]),
+                    "Unit": "weighted SCF families",
+                    "Rank basis": "Respondent-age bucket; no resource ranking",
+                    "Formula": "sum(SCF WGT for SCF families in this respondent-age bucket)",
+                    "Source fields": "Summary SCF rscfp2022.dta: AGE, WGT",
+                    "Source keys": "scf_summary",
+                    "Classification": "Computed from official SCF microdata",
+                },
+                {
+                    "Report view": "Age slicing",
+                    "Age bucket": str(age_bucket),
+                    "Displayed number": "All modeled resources total",
+                    "Value": float(summary["all_resources_total"]),
+                    "Unit": "2022 dollars",
+                    "Rank basis": "Respondent-age bucket; no resource ranking",
+                    "Formula": (
+                        "sum(continuation_resources × SCF WGT for this respondent-age bucket)"
+                    ),
+                    "Source fields": (
+                        "Summary SCF rscfp2022.dta: NETWORTH, WGT, AGE; Full SCF p22i6.dta: "
+                        "X5819, X5821, X5825, respondent/spouse ages and wages, reported Social "
+                        "Security, and DB pension benefit fields; SSA mortality and 2022 program parameters"
+                    ),
+                    "Source keys": (
+                        "scf_summary; scf_full; ssa_period_life_2019_tr2022; "
+                        "ssa_2022_parameters; ssa_2022_trustees; ssa_2022_ssi"
+                    ),
+                    "Classification": "Model-derived from official inputs",
+                },
+            ]
+        )
+        audits.append(pd.concat([panel_audit, summary_rows], ignore_index=True))
+
+    audit = pd.concat(audits, ignore_index=True)
+    audit.attrs["assumptions"] = dict(assumptions)
+    return audit
+
+
 def build_component_methodology_table(
     assumptions: dict[str, float | int]
 ) -> pd.DataFrame:

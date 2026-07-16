@@ -134,5 +134,5 @@ def methodology_expander() -> None:
         st.markdown(
             "Federal Reserve research has used related human-wealth or comprehensive-wealth concepts, "
             "including present-value treatment of future income. The interactive estimates use SCF 2022 "
-            "net worth, wage income, age, and household weights. See the Source Data page for links."
+            "net worth, wage income, age, and household weights. See Methodology for source links."
         )
