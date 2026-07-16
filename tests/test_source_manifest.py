@@ -22,6 +22,9 @@ def test_registry_contains_required_official_sources():
         "scf_replicate_weights",
         "ssa_life_male",
         "ssa_life_female",
+        "ssa_2022_parameters",
+        "ssa_2022_trustees",
+        "fed_z1_db_pensions",
     } <= set(registry)
     assert all(spec.url.startswith("https://") for spec in registry.values())
 

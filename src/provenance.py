@@ -13,6 +13,196 @@ COMPUTED_SCF_SOURCE = (
 )
 
 
+def build_shift_number_audit(
+    shift_data: pd.DataFrame, assumptions: dict[str, float | int]
+) -> pd.DataFrame:
+    """Trace every number visible in the distribution-shift figure."""
+    required = {
+        "group",
+        "state",
+        "share",
+        "weighted_total",
+        "household_share",
+        "rank_basis",
+        "conventional_share",
+        "future_resources_share",
+        "change_pp",
+    }
+    missing = required - set(shift_data.columns)
+    if missing:
+        raise ValueError(f"shift number audit is missing columns: {sorted(missing)}")
+
+    rows: list[dict[str, object]] = []
+    for record in shift_data.to_dict("records"):
+        is_conventional = record["state"] == "Conventional net worth"
+        source_fields = (
+            "SCF NETWORTH and WGT"
+            if is_conventional
+            else (
+                "SCF NETWORTH, WGT, respondent/spouse ages and wages, reported Social Security, "
+                "and DB pension benefit fields; SSA mortality and 2022 program parameters"
+            )
+        )
+        source_keys = (
+            "scf_summary"
+            if is_conventional
+            else (
+                "scf_summary; scf_full; ssa_period_life_2019_tr2022; "
+                "ssa_2022_parameters; ssa_2022_trustees"
+            )
+        )
+        classification = (
+            "Computed from official SCF microdata"
+            if is_conventional
+            else "Model-derived from official inputs"
+        )
+        base = {
+            "Rank basis": record["rank_basis"],
+            "Source fields": source_fields,
+            "Source keys": source_keys,
+            "Classification": classification,
+        }
+        rows.extend(
+            [
+                {
+                    **base,
+                    "Displayed number": (
+                        f"{record['group']} · {record['state']} · resource share"
+                    ),
+                    "Value": float(record["share"]),
+                    "Unit": "resource share",
+                    "Formula": (
+                        "weighted total for this independently ranked group / weighted total "
+                        "for all groups under the same measure"
+                    ),
+                },
+                {
+                    **base,
+                    "Displayed number": (
+                        f"{record['group']} · {record['state']} · weighted total"
+                    ),
+                    "Value": float(record["weighted_total"]),
+                    "Unit": "2022 dollars",
+                    "Formula": "sum(household resource value × SCF WGT) within the ranked group",
+                },
+                {
+                    **base,
+                    "Displayed number": (
+                        f"{record['group']} · {record['state']} · weighted household share"
+                    ),
+                    "Value": float(record["household_share"]),
+                    "Unit": "weighted household share",
+                    "Formula": "sum(SCF WGT in group) / sum(SCF WGT in all groups)",
+                },
+            ]
+        )
+
+    for record in shift_data.drop_duplicates("group").to_dict("records"):
+        rows.append(
+            {
+                "Displayed number": f"{record['group']} · percentage-point change",
+                "Value": float(record["change_pp"]),
+                "Unit": "percentage points",
+                "Rank basis": "Each state uses its own metric-specific rank",
+                "Formula": (
+                    "100 × (all modeled future resources share − conventional net-worth share)"
+                ),
+                "Source fields": (
+                    "The two derived resource shares for the same reported rank interval"
+                ),
+                "Source keys": (
+                    "scf_summary; scf_full; ssa_period_life_2019_tr2022; "
+                    "ssa_2022_parameters; ssa_2022_trustees"
+                ),
+                "Classification": "Model-derived comparison",
+            }
+        )
+    audit = pd.DataFrame(rows)
+    audit.attrs["assumptions"] = dict(assumptions)
+    return audit
+
+
+def build_component_methodology_table(
+    assumptions: dict[str, float | int]
+) -> pd.DataFrame:
+    """Return the formula and source lineage for each modeled component."""
+    return pd.DataFrame(
+        [
+            {
+                "Component": "Conventional net worth",
+                "Calculation": "SCF NETWORTH (assets minus liabilities)",
+                "Source fields": "Summary SCF: NETWORTH, WGT, Y1/YY1",
+                "Current assumptions": "None beyond the SCF definition",
+                "Source keys": "scf_summary",
+                "Important treatment": "Already includes account-type retirement balances.",
+            },
+            {
+                "Component": "Future labor earnings",
+                "Calculation": (
+                    "Σ from t=1 to retirement of survival(t) × employment probability × "
+                    "after-tax projected wage(t) / (1 + real discount rate)^t"
+                ),
+                "Source fields": "Full SCF respondent/spouse ages, sex, wage amount and frequency",
+                "Current assumptions": (
+                    f"discount={assumptions['discount_rate']:.3f}; "
+                    f"real wage growth={assumptions['wage_growth']:.3f}; "
+                    f"retirement age={assumptions['retirement_age']}; "
+                    f"employment={assumptions['employment_probability']:.2f}; "
+                    f"tax haircut={assumptions['tax_rate']:.2f}"
+                ),
+                "Source keys": "scf_full; ssa_period_life_2019_tr2022",
+                "Important treatment": "Person-bound, risky, nontransferable, and nonmarketable.",
+            },
+            {
+                "Component": "Social Security",
+                "Calculation": (
+                    "Survival-weighted PV of scheduled retired-worker benefits from the 2022 "
+                    "AIME/PIA proxy, less PV of future employee OASDI contributions"
+                ),
+                "Source fields": (
+                    "Full SCF wages, ages, sex, reported current Social Security; SSA bend points, "
+                    "taxable maximum, employee rate, and mortality"
+                ),
+                "Current assumptions": (
+                    f"payable factor={assumptions['payable_benefit_factor']:.2f}; "
+                    f"retirement age={assumptions['retirement_age']}"
+                ),
+                "Source keys": (
+                    "scf_full; ssa_period_life_2019_tr2022; ssa_2022_parameters; "
+                    "ssa_2022_trustees"
+                ),
+                "Important treatment": "Spousal and survivor benefits are excluded when unsupported.",
+            },
+            {
+                "Component": "Defined-benefit pensions",
+                "Calculation": (
+                    "Survival-weighted real PV of current or expected lifetime DB benefit flows "
+                    "from the reported claiming age"
+                ),
+                "Source fields": (
+                    "Full SCF plan type, owner, annual benefit, frequency, claiming age, and status"
+                ),
+                "Current assumptions": f"discount={assumptions['discount_rate']:.3f}",
+                "Source keys": "scf_full; ssa_period_life_2019_tr2022; fed_z1_db_pensions",
+                "Important treatment": (
+                    "Defined-contribution/account balances already in NETWORTH are never added again."
+                ),
+            },
+            {
+                "Component": "Distribution rank and share",
+                "Calculation": (
+                    "Rank SCF families independently under each measure; sum value × WGT in the "
+                    "rank interval; divide by the measure's weighted national total"
+                ),
+                "Source fields": "Household component values and SCF WGT",
+                "Current assumptions": "Four displayed intervals: bottom 50, next 40, next 9, top 1",
+                "Source keys": "scf_summary; scf_full",
+                "Important treatment": "The two states do not contain identical households.",
+            },
+        ]
+    )
+
+
 def chart_source_caption() -> str:
     return (
         f"Source: {COMPUTED_SCF_SOURCE}. Conventional net worth uses networth x wgt. "

@@ -40,5 +40,29 @@
     "filename": "ssa_period_life_2019_tr2022.csv",
     "archive_member": null,
     "sha256": null
+  },
+  "ssa_2022_parameters": {
+    "provider": "Social Security Administration",
+    "url": "https://www.ssa.gov/news/en/cola/factsheets/2022.html",
+    "vintage": "2022 Social Security changes and program parameters",
+    "filename": "ssa_2022_cola_fact_sheet.html",
+    "archive_member": null,
+    "sha256": null
+  },
+  "ssa_2022_trustees": {
+    "provider": "Social Security Administration Office of the Chief Actuary",
+    "url": "https://www.ssa.gov/oact/TRSUM/2022/index.html",
+    "vintage": "2022 Trustees Report summary",
+    "filename": "ssa_2022_trustees_summary.html",
+    "archive_member": null,
+    "sha256": null
+  },
+  "fed_z1_db_pensions": {
+    "provider": "Federal Reserve Board",
+    "url": "https://www.federalreserve.gov/releases/z1/20250911/html/l117.htm",
+    "vintage": "2025-09-11 Z.1 release, table L.117 with revised 2022 values",
+    "filename": "fed_z1_l117_20250911.html",
+    "archive_member": null,
+    "sha256": null
   }
 }
