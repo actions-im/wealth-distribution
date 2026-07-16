@@ -36,11 +36,11 @@ def build_shift_number_audit(
     for record in shift_data.to_dict("records"):
         is_conventional = record["state"] == "Conventional net worth"
         source_fields = (
-            "SCF NETWORTH and WGT"
+            "Summary SCF rscfp2022.dta: NETWORTH, WGT"
             if is_conventional
             else (
-                "SCF NETWORTH, WGT, respondent/spouse ages and wages, reported Social Security, "
-                "and DB pension benefit fields; SCF X5819, X5821, X5825 inheritance responses; "
+                "Summary SCF rscfp2022.dta: NETWORTH, WGT; Full SCF p22i6.dta: X5819, X5821, X5825, "
+                "respondent/spouse ages and wages, reported Social Security, and DB pension benefit fields; "
                 "SSA mortality and 2022 program parameters"
                 "; SSI average-payment benchmark"
             )
@@ -112,7 +112,8 @@ def build_shift_number_audit(
                 ),
                 "Source fields": (
                     "The two derived resource shares for the same reported rank interval; the full-resource "
-                    "state includes SCF X5819, X5821, X5825 inheritance responses and SSA mortality"
+                    "state uses Summary SCF rscfp2022.dta: NETWORTH, WGT; Full SCF p22i6.dta: X5819, X5821, "
+                    "X5825; and SSA mortality"
                 ),
                 "Source keys": (
                     "scf_summary; scf_full; ssa_period_life_2019_tr2022; "
@@ -227,8 +228,8 @@ def build_component_methodology_table(
                     "weighted credit/reserve conservation applies proportional recipient and donor scales"
                 ),
                 "Source fields": (
-                    "Full SCF X5819, X5821, X5825, NETWORTH, household WGT, respondent age and sex; "
-                    "SSA mortality"
+                    "Summary SCF rscfp2022.dta: NETWORTH, WGT; Full SCF p22i6.dta: X5819, X5821, X5825, "
+                    "respondent age and sex; SSA mortality"
                 ),
                 "Current assumptions": (
                     f"discount={assumptions['discount_rate']:.3f}; "
@@ -358,13 +359,16 @@ def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFra
         },
         {
             "Number category": "Expected-inheritance reallocation",
-            "Source": f"{SCF_2022_DATASET_LABEL}, SSA mortality, plus sidebar assumptions",
+            "Source": (
+                "Federal Reserve 2022 SCF summary rscfp2022.dta and full detailed p22i6.dta, "
+                "SSA mortality, plus sidebar assumptions"
+            ),
             "Method": (
-                "Use affirmative SCF X5819 and positive SCF expectation field values, including SCF imputation "
-                "where applicable, in X5821 to discount recipient claims; "
-                "use affirmative X5825, NETWORTH, respondent age and sex, and SSA mortality to derive "
-                "donor capacity. The weighted reallocation is capped at min(claims, capacity) and credits "
-                "equal reserves; the sidebar horizon is "
+                "Use affirmative X5819 and positive X5821 SCF expectation field values, including SCF imputation "
+                "where applicable, from p22i6.dta to discount recipient claims; use X5825, respondent age, "
+                "and sex from p22i6.dta plus NETWORTH and WGT from rscfp2022.dta and SSA mortality to derive "
+                "donor capacity. The weighted reallocation is capped at min(claims, capacity) and credits equal "
+                "reserves; the sidebar horizon is "
                 f"{assumptions['inheritance_horizon_years']} years."
             ),
         },

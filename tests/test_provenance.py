@@ -51,6 +51,9 @@ def test_inheritance_reallocation_provenance_discloses_conserved_allocator():
     assert "X5821" in row["Source fields"]
     assert "X5825" in row["Source fields"]
     assert "SSA mortality" in row["Source fields"]
+    assert "Summary SCF rscfp2022.dta: NETWORTH, WGT" in row["Source fields"]
+    assert "Full SCF p22i6.dta: X5819, X5821, X5825" in row["Source fields"]
+    assert row["Source keys"] == "scf_summary; scf_full; ssa_period_life_2019_tr2022"
     assert "horizon=15" in row["Current assumptions"]
     calculation = row["Calculation"].lower()
     assert "discounted recipient claims" in calculation
@@ -64,6 +67,15 @@ def test_inheritance_reallocation_provenance_discloses_conserved_allocator():
         audit["Displayed number"].str.contains("All modeled future resources")
     ]
     assert future_rows["Source fields"].str.contains("X5819, X5821, X5825").all()
+    assert future_rows["Source fields"].str.contains(
+        "Summary SCF rscfp2022.dta: NETWORTH, WGT"
+    ).all()
+    assert future_rows["Source fields"].str.contains(
+        "Full SCF p22i6.dta"
+    ).all()
+    assert future_rows["Source keys"].str.contains(
+        "scf_summary; scf_full; ssa_period_life_2019_tr2022"
+    ).all()
     assert "inheritance reallocation" in chart_source_caption()
 
 
