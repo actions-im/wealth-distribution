@@ -142,7 +142,8 @@ def build_component_methodology_table(
                 "Component": "Future labor earnings",
                 "Calculation": (
                     "Σ from t=1 to retirement of survival(t) × employment probability × "
-                    "after-tax projected wage(t) / (1 + real discount rate)^t"
+                    "after-tax projected wage(t) / (1 + real discount rate)^t; a working-age "
+                    "zero-wage adult uses a weighted median positive wage from the same SCF sex × age group"
                 ),
                 "Source fields": "Full SCF respondent/spouse ages, sex, wage amount and frequency",
                 "Current assumptions": (
@@ -153,7 +154,10 @@ def build_component_methodology_table(
                     f"tax haircut={assumptions['tax_rate']:.2f}"
                 ),
                 "Source keys": "scf_full; ssa_period_life_2019_tr2022",
-                "Important treatment": "Person-bound, risky, nontransferable, and nonmarketable.",
+                "Important treatment": (
+                    "Person-bound, risky, nontransferable, and nonmarketable. The re-entry wage is a "
+                    "transparent peer-based imputation, not an observed wage or a guaranteed return to work."
+                ),
             },
             {
                 "Component": "Social Security",
@@ -207,7 +211,8 @@ def build_component_methodology_table(
                 "Source keys": "scf_full; ssa_period_life_2019_tr2022; ssa_2022_ssi",
                 "Important treatment": (
                     "Scenario benchmark calibrated to the December 2022 average SSI payment; it is not an "
-                    "eligibility determination, entitlement, or transferable asset."
+                    "eligibility determination, entitlement, or transferable asset. For couples, survival of "
+                    "at least one adult uses an independence approximation."
                 ),
             },
             {

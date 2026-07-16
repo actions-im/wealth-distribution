@@ -157,9 +157,12 @@ st.warning(
     "Future earnings are personal, risky, nontransferable, and illiquid. The public model excludes "
     "unsupported Social Security spousal/survivor benefits, DB survivor annuities without joint-life "
     "inputs, and mixed business income that could double count returns already embedded in business equity. "
-    "Headline values are point estimates; replicate-weight intervals are not yet displayed. The income-security "
+    "Zero-wage working-age adults receive a peer-based re-entry wage imputation times the visible re-entry "
+    "probability; this is a scenario assumption, not observed earnings. Headline values are point estimates; "
+    "replicate-weight intervals are not yet displayed. The income-security "
     "floor is a scenario benchmark, not an estimate that every family qualifies for SSI or another program; it "
-    "also uses only one or two adults because child and state-program eligibility inputs are not modeled.",
+    "also uses only one or two adults because child and state-program eligibility inputs are not modeled. For "
+    "two-adult families, its survival calculation assumes independent mortality.",
     icon=":material/warning:",
 )
 
