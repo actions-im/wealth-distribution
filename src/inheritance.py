@@ -178,7 +178,9 @@ def _estate_donor_capacity(
         survival_curve = conditional_survival(lives_by_age, current_age)
     except (TypeError, ValueError):
         return 0.0
-    survival_at_horizon = survival_curve[horizon_years] if horizon_years < len(survival_curve) else 0.0
+    if horizon_years >= len(survival_curve):
+        return 0.0
+    survival_at_horizon = survival_curve[horizon_years]
     mortality = 1 - survival_at_horizon
     return wealth * mortality if math.isfinite(mortality) and mortality > 0 else 0.0
 

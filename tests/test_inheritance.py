@@ -184,6 +184,41 @@ def test_zero_capacity_leaves_claim_unallocated_and_creates_no_credit_or_reserve
     )
 
 
+def test_short_mortality_curve_makes_donor_ineligible_for_reallocation():
+    result, diagnostics = allocate_inheritance_reallocation(
+        _households(
+            [
+                {
+                    "household_weight": 1,
+                    "net_worth": 0,
+                    "age": 45,
+                    "sex": "female",
+                    "expected_inheritance_amount": 1_000,
+                    "expects_sizable_estate": False,
+                },
+                {
+                    "household_weight": 1,
+                    "net_worth": 1_000,
+                    "age": 45,
+                    "sex": "female",
+                    "expected_inheritance_amount": 0,
+                    "expects_sizable_estate": True,
+                },
+            ]
+        ),
+        life_table={"female": {45: 1_000, 46: 900}},
+        horizon_years=5,
+        discount_rate=0.10,
+    )
+
+    assert result.loc[1, "estate_donor_capacity"] == 0
+    assert result.loc[1, "estate_donor_reserve"] == 0
+    assert result.loc[0, "inheritance_credit"] == 0
+    assert diagnostics.unallocated_claim_total == pytest.approx(
+        diagnostics.discounted_claim_total
+    )
+
+
 def test_claims_larger_than_capacity_are_prorated_and_funding_ratio_is_below_one():
     result, diagnostics = _allocate(
         [
