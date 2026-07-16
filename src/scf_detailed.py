@@ -7,6 +7,7 @@ from typing import Mapping
 from pathlib import Path
 from zipfile import ZipFile
 
+import numpy as np
 import pandas as pd
 
 
@@ -188,17 +189,21 @@ def _number(value: object) -> float:
 def _is_affirmative_scf_code(value: object) -> bool:
     return (
         isinstance(value, Real)
-        and not isinstance(value, bool)
+        and not _is_boolean_scalar(value)
         and math.isfinite(float(value))
         and value == 1
     )
 
 
 def _positive_finite_amount(value: object) -> float:
-    if isinstance(value, bool):
+    if _is_boolean_scalar(value):
         return 0.0
     amount = _number(value)
     return amount if math.isfinite(amount) and amount > 0 else 0.0
+
+
+def _is_boolean_scalar(value: object) -> bool:
+    return isinstance(value, (bool, np.bool_))
 
 
 def _sex(value: object) -> str:

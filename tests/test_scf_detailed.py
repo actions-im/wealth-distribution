@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -91,6 +92,16 @@ def test_boolean_inheritance_expectation_code_creates_no_future_claim(detailed_s
     assert household.expected_inheritance_amount == 0
 
 
+def test_numpy_boolean_inheritance_expectation_code_creates_no_future_claim(
+    detailed_scf_row,
+):
+    detailed_scf_row["x5819"] = np.bool_(True)
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.expected_inheritance_amount == 0
+
+
 @pytest.mark.parametrize(
     "amount",
     [0, -1, None, float("nan"), float("inf"), float("-inf")],
@@ -113,6 +124,14 @@ def test_boolean_inheritance_amount_creates_no_future_claim(detailed_scf_row):
     assert household.expected_inheritance_amount == 0
 
 
+def test_numpy_boolean_inheritance_amount_creates_no_future_claim(detailed_scf_row):
+    detailed_scf_row["x5821"] = np.bool_(True)
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.expected_inheritance_amount == 0
+
+
 @pytest.mark.parametrize(
     "estate_response, expected",
     [(1, True), (None, False), (0, False), (1.5, False), (2, False), (5, False)],
@@ -129,6 +148,14 @@ def test_only_direct_sizable_estate_intent_sets_donor_flag(
 
 def test_boolean_sizable_estate_code_creates_no_donor_intent(detailed_scf_row):
     detailed_scf_row["x5825"] = True
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.expects_sizable_estate is False
+
+
+def test_numpy_boolean_sizable_estate_code_creates_no_donor_intent(detailed_scf_row):
+    detailed_scf_row["x5825"] = np.bool_(True)
 
     household = build_detailed_household_input(detailed_scf_row)
 
