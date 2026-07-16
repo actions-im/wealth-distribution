@@ -16,12 +16,6 @@ from src.source_manifest import load_source_registry
 from src.ui import render_assumption_sidebar
 
 
-st.set_page_config(
-    page_title="Methodology and number audit",
-    page_icon=":material/menu_book:",
-    layout="wide",
-)
-
 assumptions = render_assumption_sidebar()
 data = load_comprehensive_report_data(
     assumptions["discount_rate"],

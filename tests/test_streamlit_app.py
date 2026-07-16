@@ -33,7 +33,7 @@ def test_home_uses_two_state_distribution_shift():
 
 
 def test_home_uses_purpose_built_chart_helper():
-    source = Path("Home.py").read_text()
+    source = Path("app_pages/home.py").read_text()
 
     assert "distribution_shift_figure" in source
     assert "build_distribution_shift_data" in source
@@ -43,7 +43,7 @@ def test_home_uses_purpose_built_chart_helper():
 
 def test_age_distribution_shift_page_renders_six_within_age_views():
     app = AppTest.from_file(
-        "pages/08_Age_Distribution_Shift.py", default_timeout=40
+        "app_pages/age_slicing.py", default_timeout=40
     ).run(timeout=40)
 
     assert not app.exception
@@ -63,37 +63,27 @@ def test_age_distribution_shift_page_renders_six_within_age_views():
     assert "newly created wealth" not in visible_copy.lower()
     assert (
         "validate_inheritance_reallocation_conservation(data)"
-        in Path("pages/08_Age_Distribution_Shift.py").read_text()
+        in Path("app_pages/age_slicing.py").read_text()
     )
 
 
-def test_wealth_by_quantile_page_renders_with_inheritance_reallocation_context():
-    app = AppTest.from_file(
-        "pages/02_Wealth_by_Quantile.py", default_timeout=40
-    ).run(timeout=40)
+def test_explicit_public_navigation_has_only_three_pages():
+    source = Path("Home.py").read_text()
 
-    assert not app.exception
-    assert app.title[0].value == "Resource Shares by Measure-Specific Weighted Rank"
-    visible_copy = " ".join(
-        [item.value for item in app.markdown] + [item.value for item in app.info]
-    )
-    assert "constrained aggregate inheritance reallocation" in visible_copy
-    assert "not new wealth" in visible_copy
-    assert "not a legal entitlement" in visible_copy
-    assert "does not identify a donor/recipient family match" in visible_copy
-    assert (
-        "validate_inheritance_reallocation_conservation(data)"
-        in Path("pages/02_Wealth_by_Quantile.py").read_text()
-    )
+    assert "st.navigation" in source
+    assert source.count("st.Page(") == 3
+    assert 'st.Page("app_pages/home.py", title="Home"' in source
+    assert 'st.Page("app_pages/age_slicing.py", title="Age slicing"' in source
+    assert 'st.Page("app_pages/methodology.py", title="Methodology"' in source
+    assert not Path("pages").exists()
 
 
 @pytest.mark.parametrize(
     "page_path",
     [
-        "Home.py",
-        "pages/02_Wealth_by_Quantile.py",
-        "pages/07_Methodology.py",
-        "pages/08_Age_Distribution_Shift.py",
+        "app_pages/home.py",
+        "app_pages/methodology.py",
+        "app_pages/age_slicing.py",
     ],
 )
 def test_distribution_pages_block_unconserved_inheritance_data(monkeypatch, page_path):

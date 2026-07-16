@@ -23,12 +23,6 @@ AGE_LABELS = {
 }
 
 
-st.set_page_config(
-    page_title="Distribution shifts by age",
-    page_icon=":material/stacks:",
-    layout="wide",
-)
-
 assumptions = render_assumption_sidebar()
 data = load_comprehensive_report_data(
     assumptions["discount_rate"],
