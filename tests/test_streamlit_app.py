@@ -67,7 +67,35 @@ def test_age_distribution_shift_page_renders_six_within_age_views():
     )
 
 
-@pytest.mark.parametrize("page_path", ["Home.py", "pages/08_Age_Distribution_Shift.py"])
+def test_wealth_by_quantile_page_renders_with_inheritance_reallocation_context():
+    app = AppTest.from_file(
+        "pages/02_Wealth_by_Quantile.py", default_timeout=40
+    ).run(timeout=40)
+
+    assert not app.exception
+    assert app.title[0].value == "Resource Shares by Measure-Specific Weighted Rank"
+    visible_copy = " ".join(
+        [item.value for item in app.markdown] + [item.value for item in app.info]
+    )
+    assert "constrained aggregate inheritance reallocation" in visible_copy
+    assert "not new wealth" in visible_copy
+    assert "not a legal entitlement" in visible_copy
+    assert "does not identify a donor/recipient family match" in visible_copy
+    assert (
+        "validate_inheritance_reallocation_conservation(data)"
+        in Path("pages/02_Wealth_by_Quantile.py").read_text()
+    )
+
+
+@pytest.mark.parametrize(
+    "page_path",
+    [
+        "Home.py",
+        "pages/02_Wealth_by_Quantile.py",
+        "pages/07_Methodology.py",
+        "pages/08_Age_Distribution_Shift.py",
+    ],
+)
 def test_distribution_pages_block_unconserved_inheritance_data(monkeypatch, page_path):
     monkeypatch.setattr(
         "src.app_data.load_comprehensive_report_data",

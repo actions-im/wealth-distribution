@@ -8,7 +8,10 @@ import streamlit as st
 from src.app_data import load_comprehensive_report_data
 from src.provenance import build_component_methodology_table, build_shift_number_audit
 from src.real_data import aggregate_ranked_resource_distributions
-from src.reporting import build_distribution_shift_data
+from src.reporting import (
+    build_distribution_shift_data,
+    validate_inheritance_reallocation_conservation,
+)
 from src.source_manifest import load_source_registry
 from src.ui import render_assumption_sidebar
 
@@ -31,6 +34,7 @@ data = load_comprehensive_report_data(
     assumptions["income_security_floor_monthly"],
     assumptions["inheritance_horizon_years"],
 )
+validate_inheritance_reallocation_conservation(data)
 distribution = aggregate_ranked_resource_distributions(data)
 shift_data = build_distribution_shift_data(distribution)
 number_audit = build_shift_number_audit(shift_data, assumptions)

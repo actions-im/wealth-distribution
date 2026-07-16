@@ -5,6 +5,7 @@ import streamlit as st
 
 from src.app_data import load_comprehensive_report_data
 from src.real_data import aggregate_ranked_resource_distributions
+from src.reporting import validate_inheritance_reallocation_conservation
 from src.ui import methodology_expander, render_assumption_sidebar
 
 
@@ -21,6 +22,7 @@ data = load_comprehensive_report_data(
     assumptions["income_security_floor_monthly"],
     assumptions["inheritance_horizon_years"],
 )
+validate_inheritance_reallocation_conservation(data)
 distribution = aggregate_ranked_resource_distributions(data)
 distribution["Measure"] = distribution["measure"].map(
     {
@@ -35,6 +37,12 @@ st.write(
     "Every distribution is re-ranked using the measure being reported. A household can therefore move "
     "between groups when nonmarketable resources are added. This avoids presenting a fixed-net-worth-rank "
     "decomposition as though it were the distribution of another measure."
+)
+st.info(
+    "Continuation resources include expected inheritance as a constrained aggregate inheritance "
+    "reallocation, not new wealth: recipient credits are offset by donor reserves. It is not a legal "
+    "entitlement and does not identify a donor/recipient family match.",
+    icon=":material/account_balance:",
 )
 figure = px.bar(
     distribution,
