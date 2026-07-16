@@ -5,6 +5,29 @@ from src.real_data import normalize_scf_rows
 from src.scf_detailed import build_detailed_household_input
 
 
+@pytest.fixture
+def detailed_scf_row():
+    return {
+        "y1": 12341,
+        "yy1": 1234,
+        "x14": 64,
+        "x19": 40,
+        "x8021": 1,
+        "x103": 2,
+        "x4112": 100_000,
+        "x4113": 6,
+        "x4712": 4_000,
+        "x4713": 4,
+        "x5306": 2_000,
+        "x5307": 4,
+        "x5311": 0,
+        "x5312": 0,
+        "x5819": 1,
+        "x5821": 500_000,
+        "x5825": 1,
+    }
+
+
 def test_normalization_preserves_family_and_implicate_ids():
     data = normalize_scf_rows(
         pd.DataFrame(
@@ -26,25 +49,8 @@ def test_normalization_preserves_family_and_implicate_ids():
     assert data.loc[0, "scf_row_id"] == 12341
 
 
-def test_detailed_inputs_keep_people_and_social_security_separate():
-    household = build_detailed_household_input(
-        {
-            "y1": 12341,
-            "yy1": 1234,
-            "x14": 64,
-            "x19": 40,
-            "x8021": 1,
-            "x103": 2,
-            "x4112": 100_000,
-            "x4113": 6,
-            "x4712": 4_000,
-            "x4713": 4,
-            "x5306": 2_000,
-            "x5307": 4,
-            "x5311": 0,
-            "x5312": 0,
-        }
-    )
+def test_detailed_inputs_keep_people_and_social_security_separate(detailed_scf_row):
+    household = build_detailed_household_input(detailed_scf_row)
 
     assert household.respondent.age == 64
     assert household.spouse is not None
@@ -53,6 +59,37 @@ def test_detailed_inputs_keep_people_and_social_security_separate():
     assert household.spouse.annual_wage == pytest.approx(48_000)
     assert household.respondent.annual_social_security == pytest.approx(24_000)
     assert household.spouse.annual_social_security == 0
+
+
+def test_affirmative_inheritance_expectation_preserves_positive_amount(detailed_scf_row):
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.expected_inheritance_amount == pytest.approx(500_000)
+
+
+@pytest.mark.parametrize("response", [None, 0, 1.5, 2, 3])
+def test_nonaffirmative_inheritance_response_creates_no_future_claim(
+    detailed_scf_row, response
+):
+    detailed_scf_row["x5819"] = response
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.expected_inheritance_amount == 0
+
+
+@pytest.mark.parametrize(
+    "estate_response, expected",
+    [(1, True), (None, False), (0, False), (1.5, False), (2, False)],
+)
+def test_only_direct_sizable_estate_intent_sets_donor_flag(
+    detailed_scf_row, estate_response, expected
+):
+    detailed_scf_row["x5825"] = estate_response
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.expects_sizable_estate is expected
 
 
 def test_future_db_benefit_is_mapped_without_account_balance():

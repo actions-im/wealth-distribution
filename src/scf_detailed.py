@@ -30,6 +30,7 @@ DETAILED_COLUMNS = [
     "x6466", "x5323", "x5325", "x5326", "x5327",
     "x6471", "x5331", "x5333", "x5334", "x5335",
     "x6476", "x5415", "x5417", "x5418", "x5419",
+    "x5819", "x5821", "x5825",
 ]
 
 
@@ -66,6 +67,8 @@ class DetailedHouseholdInput:
     respondent: PersonInput
     spouse: PersonInput | None
     db_pensions: tuple[PensionBenefitInput, ...]
+    expected_inheritance_amount: float = 0.0
+    expects_sizable_estate: bool = False
 
 
 def annualize(amount: object, frequency: object) -> float:
@@ -100,6 +103,10 @@ def build_detailed_household_input(row: Mapping[str, object]) -> DetailedHouseho
         )
 
     pensions = _future_db_pensions(values) + _current_db_pensions(values, respondent, spouse)
+    expected_inheritance_amount = 0.0
+    if _number(values.get("x5819")) == 1:
+        expected_inheritance_amount = max(_number(values.get("x5821")), 0.0)
+
     return DetailedHouseholdInput(
         row_id=row_id,
         family_id=family_id,
@@ -107,6 +114,8 @@ def build_detailed_household_input(row: Mapping[str, object]) -> DetailedHouseho
         respondent=respondent,
         spouse=spouse,
         db_pensions=tuple(pensions),
+        expected_inheritance_amount=expected_inheritance_amount,
+        expects_sizable_estate=_number(values.get("x5825")) == 1,
     )
 
 
