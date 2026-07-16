@@ -126,7 +126,7 @@ Cover:
 - A reserve never exceeds positive net worth or mortality-weighted capacity.
 - Zero capacity produces no credit and an explicit unallocated claim.
 - Claims larger than capacity are pro-rated.
-- Negative wealth, no affirmative estate intent, missing sex, and invalid inheritance amounts make no component.
+- Negative wealth, no affirmative estate intent, or missing donor sex/age make no donor capacity or reserve; invalid inheritance amounts make no recipient claim or credit. Recipient sex and age are not required because timing uses the global scenario horizon.
 
 **Step 2: Run them to verify they fail**
 
