@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from src.config import AGE_BUCKETS
 from src.formatting import percent
 from src.provenance import computed_scf_row_source
 
@@ -75,6 +76,52 @@ def build_distribution_shift_data(distribution: pd.DataFrame) -> pd.DataFrame:
         grouped["state"], categories=SHIFT_STATE_ORDER, ordered=True
     )
     return grouped.sort_values(["group", "state"]).reset_index(drop=True)
+
+
+def build_age_distribution_shift_data(data: pd.DataFrame) -> pd.DataFrame:
+    """Build independently ranked distribution shifts within respondent-age buckets."""
+    required = {
+        "household_id",
+        "household_weight",
+        "age",
+        "net_worth",
+        "defensive_resources",
+        "continuation_resources",
+    }
+    missing = required - set(data.columns)
+    if missing:
+        raise ValueError(f"age distribution data is missing columns: {sorted(missing)}")
+
+    from src.real_data import (
+        age_group,
+        aggregate_ranked_resource_distributions,
+    )
+
+    working = data.copy()
+    working["age_group"] = pd.Categorical(
+        working["age"].map(age_group), categories=AGE_BUCKETS, ordered=True
+    )
+    tables: list[pd.DataFrame] = []
+    for bucket in AGE_BUCKETS:
+        bucket_data = working.loc[working["age_group"] == bucket].copy()
+        if bucket_data.empty:
+            continue
+        shift = build_distribution_shift_data(
+            aggregate_ranked_resource_distributions(bucket_data)
+        )
+        shift["age_group"] = bucket
+        shift["weighted_family_count"] = bucket_data["household_weight"].sum()
+        shift["all_resources_total"] = (
+            bucket_data["continuation_resources"] * bucket_data["household_weight"]
+        ).sum()
+        tables.append(shift)
+    if not tables:
+        raise ValueError("age distribution data has no non-empty age buckets")
+    result = pd.concat(tables, ignore_index=True)
+    result["age_group"] = pd.Categorical(
+        result["age_group"], categories=AGE_BUCKETS, ordered=True
+    )
+    return result.sort_values(["age_group", "group", "state"]).reset_index(drop=True)
 
 
 def build_executive_share_table(distribution: pd.DataFrame) -> pd.DataFrame:

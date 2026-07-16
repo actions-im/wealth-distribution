@@ -2,6 +2,7 @@ import pytest
 import pandas as pd
 
 from src.reporting import (
+    build_age_distribution_shift_data,
     build_distribution_shift_data,
     build_executive_share_table,
     build_fixed_rank_decomposition,
@@ -89,6 +90,31 @@ def test_distribution_shift_combines_top_one_and_calculates_change():
     assert top.loc["All modeled future resources", "share"] == pytest.approx(0.19)
     assert top.loc["All modeled future resources", "change_pp"] == pytest.approx(-16.0)
     assert top.loc["Conventional net worth", "weighted_total"] == 350
+
+
+def test_age_distribution_shift_ranks_each_age_bucket_independently():
+    data = pd.DataFrame(
+        {
+            "household_id": list(range(1, 21)),
+            "household_weight": [1.0] * 20,
+            "age": [30] * 10 + [70] * 10,
+            "net_worth": list(range(10, 110, 10)) * 2,
+            "continuation_resources": list(range(100, 0, -10))
+            + list(range(10, 110, 10)),
+            "defensive_resources": list(range(10, 210, 10)),
+        }
+    )
+
+    result = build_age_distribution_shift_data(data)
+
+    assert result["age_group"].drop_duplicates().tolist() == ["25-34", "65-74"]
+    assert set(result["state"]) == {
+        "Conventional net worth",
+        "All modeled future resources",
+    }
+    assert set(result["group"]) == {"Bottom 50%", "Next 40%", "Next 9%", "Top 1%"}
+    shares = result.groupby(["age_group", "state"], observed=True)["share"].sum()
+    assert shares.tolist() == pytest.approx([1, 1, 1, 1])
 
 
 def _metric_specific_distribution():
