@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from src.formatting import dollars_trillions
+
 
 MONEY_TICK = "$,.0f"
 
@@ -78,11 +80,18 @@ def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
             )
 
     changes = data.drop_duplicates("group").set_index("group")
+    totals = data.pivot(index="group", columns="state", values="weighted_total")
     annotation_positions = [0.125, 0.375, 0.625, 0.875]
     for x_position, group in zip(annotation_positions, SHIFT_COLORS, strict=True):
         row = changes.loc[group]
         change = float(row["change_pp"])
         sign = "+" if change >= 0 else "−"
+        conventional_total = dollars_trillions(
+            float(totals.loc[group, "Conventional net worth"])
+        )
+        future_resources_total = dollars_trillions(
+            float(totals.loc[group, "All modeled future resources"])
+        )
         figure.add_annotation(
             x=x_position,
             y=-0.32,
@@ -92,7 +101,8 @@ def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
             align="center",
             text=(
                 f"<b>{group}</b><br>"
-                f"{row['conventional_share']:.1%} → {row['future_resources_share']:.1%}<br>"
+                f"{row['conventional_share']:.1%} [{conventional_total}] → "
+                f"{row['future_resources_share']:.1%} [{future_resources_total}]<br>"
                 f"<b>{sign}{abs(change):.1f} pp</b>"
             ),
             font={"size": 13, "color": color_for_change(change)},

@@ -17,10 +17,17 @@ def test_distribution_shift_figure_has_two_states_and_four_groups():
 
 def test_distribution_shift_figure_formats_shares_and_change_strip():
     figure = distribution_shift_figure(_shift_data())
+    bottom_50_annotation = next(
+        annotation
+        for annotation in figure.layout.annotations
+        if "Bottom 50%" in annotation.text
+    )
 
     assert figure.layout.barmode == "stack"
     assert figure.layout.xaxis.tickformat == ".0%"
     assert figure.layout.xaxis.range == (0, 1)
+    assert "2.0% [$0.0T] → 10.0% [$0.1T]" in bottom_50_annotation.text
+    assert "+8.0 pp" in bottom_50_annotation.text
     assert any("35.0%" in annotation.text for annotation in figure.layout.annotations)
     assert any("−16.0 pp" in annotation.text for annotation in figure.layout.annotations)
     assert all("weighted total" in trace.hovertemplate.lower() for trace in figure.data)
