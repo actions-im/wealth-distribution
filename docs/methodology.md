@@ -58,7 +58,7 @@ The stream is survival weighted and discounted using the same real discount rate
 
 ### Expected inheritance reallocation
 
-The continuation measure includes a constrained aggregate reallocation of reported expected inheritances. It uses a positive reported amount only where `X5819` says the SCF family expects a substantial future inheritance or transfer and `X5821` reports a positive amount. At the selected horizon `H` and real discount rate `r`, the recipient claim is:
+The continuation measure includes a constrained aggregate reallocation of expected inheritances. It uses a positive SCF field value (including SCF imputation where applicable) only where `X5819` says the SCF family expects a substantial future inheritance or transfer and `X5821` has a positive amount. At the selected horizon `H` and real discount rate `r`, the recipient claim is:
 
 ```text
 claim_i = reported amount_i / (1 + r)^H

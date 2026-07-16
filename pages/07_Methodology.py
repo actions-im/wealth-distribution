@@ -166,9 +166,11 @@ st.warning(
     "floor is a scenario benchmark, not an estimate that every family qualifies for SSI or another program; it "
     "also uses only one or two adults because child and state-program eligibility inputs are not modeled. For "
     "two-adult families, its survival calculation assumes independent mortality. Expected inheritance is a "
-    "constrained aggregate reallocation of reported SCF expectations, not a legal claim or a current ownership "
+    "constrained aggregate reallocation of SCF field values, not a legal claim or a current ownership "
     "record: public SCF data do not link a recipient family to a donor family. It leaves conventional net worth "
-    "unchanged and has no modeled estate taxes, care costs, gifts, charity, siblings, or unobserved heirs.",
+    "unchanged; consumption is not modeled as an estate reduction. The model does not add future returns, yields, "
+    "rents, dividends, or capital gains to an inherited asset already reflected in donor net worth. Estate taxes, "
+    "care costs, gifts, charity, siblings, and unobserved heirs are also not modeled.",
     icon=":material/warning:",
 )
 

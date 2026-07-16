@@ -82,6 +82,8 @@ def test_long_form_docs_disclose_inheritance_reallocation_limits():
         assert phrase in methodology
 
     assert "expected-inheritance reallocation" in readme
+    assert "SCF field value (including SCF imputation where applicable)" in methodology
+    assert "SCF field values (including SCF imputation where applicable)" in readme
 
 
 def test_shift_number_audit_covers_every_share_total_and_change():
