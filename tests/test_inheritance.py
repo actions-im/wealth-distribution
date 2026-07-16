@@ -67,6 +67,11 @@ def test_discounted_inheritance_claim_uses_the_horizon_and_discount_rate():
     )
 
 
+def test_overflowing_discounted_inheritance_claim_is_rejected_fail_closed():
+    with pytest.raises(ValueError, match="inheritance_claim"):
+        discounted_inheritance_claim(1.0, years=100, discount_rate=-0.999999)
+
+
 def test_weighted_credits_equal_weighted_reserves_when_donor_capacity_exists():
     result, diagnostics = _allocate(
         [
@@ -219,6 +224,37 @@ def test_short_mortality_curve_makes_donor_ineligible_for_reallocation():
     )
 
 
+def test_mortality_data_after_the_horizon_are_not_required_for_donor_capacity():
+    result, _ = allocate_inheritance_reallocation(
+        _households(
+            [
+                {
+                    "household_weight": 1,
+                    "net_worth": 0,
+                    "age": 45,
+                    "sex": "female",
+                    "expected_inheritance_amount": 10_000,
+                    "expects_sizable_estate": False,
+                },
+                {
+                    "household_weight": 1,
+                    "net_worth": 1_000,
+                    "age": 45,
+                    "sex": "female",
+                    "expected_inheritance_amount": 0,
+                    "expects_sizable_estate": True,
+                },
+            ]
+        ),
+        life_table={"female": {45: 1_000, 46: 950, 47: 900, 49: 800}},
+        horizon_years=2,
+        discount_rate=0.10,
+    )
+
+    assert result.loc[1, "estate_donor_capacity"] == pytest.approx(100)
+    assert result.loc[1, "estate_donor_reserve"] == pytest.approx(100)
+
+
 def test_claims_larger_than_capacity_are_prorated_and_funding_ratio_is_below_one():
     result, diagnostics = _allocate(
         [
@@ -298,9 +334,31 @@ def test_invalid_claim_values_become_zero_while_invalid_donor_data_produce_no_ca
     assert result["estate_donor_reserve"].sum() == 0
 
 
+def test_boolean_inheritance_amount_becomes_a_zero_claim():
+    result, _ = _allocate(
+        [
+            {
+                "household_weight": 1,
+                "net_worth": 0,
+                "age": 40,
+                "sex": "female",
+                "expected_inheritance_amount": True,
+                "expects_sizable_estate": False,
+            }
+        ]
+    )
+
+    assert result.loc[0, "inheritance_claim"] == 0
+
+
 @pytest.mark.parametrize(
     ("household_weight", "match"),
-    [(-1, "household_weight"), (math.nan, "household_weight"), (math.inf, "household_weight")],
+    [
+        (-1, "household_weight"),
+        (math.nan, "household_weight"),
+        (math.inf, "household_weight"),
+        (True, "household_weight"),
+    ],
 )
 def test_invalid_household_weight_is_rejected(household_weight, match):
     with pytest.raises(ValueError, match=match):
@@ -325,6 +383,8 @@ def test_invalid_household_weight_is_rejected(household_weight, match):
         (True, 0.10, "horizon_years"),
         (5, -1.0, "discount_rate"),
         (5, math.nan, "discount_rate"),
+        (5, True, "discount_rate"),
+        (5, False, "discount_rate"),
     ],
 )
 def test_invalid_horizon_or_discount_factor_is_rejected(horizon_years, discount_rate, match):
@@ -346,3 +406,28 @@ def test_invalid_horizon_or_discount_factor_is_rejected(horizon_years, discount_
             horizon_years=horizon_years,
             discount_rate=discount_rate,
         )
+
+
+def test_allocation_does_not_mutate_callers_dataframe():
+    households = _households(
+        [
+            {
+                "household_weight": 1,
+                "net_worth": 100,
+                "age": 40,
+                "sex": "female",
+                "expected_inheritance_amount": 0,
+                "expects_sizable_estate": False,
+            }
+        ]
+    )
+    original = households.copy(deep=True)
+
+    allocate_inheritance_reallocation(
+        households,
+        life_table=LIFE_TABLE,
+        horizon_years=5,
+        discount_rate=0.10,
+    )
+
+    pd.testing.assert_frame_equal(households, original)
