@@ -45,6 +45,13 @@ st.write(
     "net worth with all modeled future resources for SCF families in one respondent-age bucket."
 )
 st.info(
+    "All modeled future resources include a constrained aggregate inheritance reallocation: discounted "
+    "expectation values are offset by the same weighted aggregate of mortality-weighted reserves for "
+    "estate-intending owners. It does not add or create national wealth. Conventional net "
+    "worth remains the current-ownership measure and is not changed by the reallocation.",
+    icon=":material/account_balance:",
+)
+st.info(
     "Every bar is ranked independently within that age bucket. For example, Bottom 50% means the "
     "bottom half of families of that age under the measure shown—not a nationally fixed group of people.",
     icon=":material/info:",
@@ -52,7 +59,7 @@ st.info(
 st.caption(
     "Unit: SCF family; age: survey respondent's age. Modeled future resources include estimated future "
     "labor earnings, Social Security, defined-benefit pensions, and a modeled income-security floor, subject "
-    "to the active assumptions."
+    "to the active assumptions, plus the constrained aggregate inheritance reallocation described above."
 )
 
 age_columns = st.columns(2)

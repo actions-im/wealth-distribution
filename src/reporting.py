@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 
 from src.formatting import percent
@@ -9,6 +11,91 @@ from src.provenance import computed_scf_row_source
 SHIFT_GROUP_ORDER = ["Bottom 50%", "Next 40%", "Next 9%", "Top 1%"]
 SHIFT_STATE_ORDER = ["Conventional net worth", "All modeled future resources"]
 AGE_SHIFT_BUCKETS = ["<25", "25-34", "35-44", "45-54", "55-64", "65+"]
+
+# `math.fsum` minimizes accumulation error; at 2022-dollar national totals these
+# tolerances permit only rounding noise, not a material unreserved credit.
+INHERITANCE_REALLOCATION_RELATIVE_TOLERANCE = 1e-12
+INHERITANCE_REALLOCATION_ABSOLUTE_TOLERANCE = 0.01
+
+
+def validate_inheritance_reallocation_conservation(data: pd.DataFrame) -> float:
+    """Return the weighted inheritance imbalance after verifying conservation.
+
+    Weighted recipient credits and donor reserves must agree within one cent or
+    one part in 10^12, whichever tolerance is larger. The allowance covers
+    floating-point summation only; it does not permit a material addition to
+    national resources.
+    """
+    required = {
+        "household_weight",
+        "continuation_expected_inheritance",
+        "continuation_estate_donor_reserve",
+    }
+    missing = required - set(data.columns)
+    if missing:
+        raise ValueError(
+            "inheritance reallocation conservation is missing columns: "
+            f"{sorted(missing)}"
+        )
+
+    values = {
+        column: _finite_numeric_values(data[column], column=column)
+        for column in required
+    }
+    weights = values["household_weight"]
+    weighted_credits = _finite_weighted_total(
+        weights,
+        values["continuation_expected_inheritance"],
+        name="weighted credits",
+    )
+    weighted_reserves = _finite_weighted_total(
+        weights,
+        values["continuation_estate_donor_reserve"],
+        name="weighted donor reserves",
+    )
+    imbalance = weighted_credits - weighted_reserves
+    if not math.isclose(
+        weighted_credits,
+        weighted_reserves,
+        rel_tol=INHERITANCE_REALLOCATION_RELATIVE_TOLERANCE,
+        abs_tol=INHERITANCE_REALLOCATION_ABSOLUTE_TOLERANCE,
+    ):
+        raise ValueError(
+            "inheritance reallocation conservation failed: weighted credits "
+            f"({weighted_credits:.12g}) differ from weighted donor reserves "
+            f"({weighted_reserves:.12g}) by {imbalance:.12g}"
+        )
+    return imbalance
+
+
+def _finite_numeric_values(values: pd.Series, *, column: str) -> list[float]:
+    numeric_values: list[float] = []
+    for value in values:
+        if isinstance(value, bool) or type(value).__name__ == "bool":
+            raise ValueError(f"{column} must be finite and numeric")
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"{column} must be finite and numeric") from error
+        if not math.isfinite(numeric):
+            raise ValueError(f"{column} must be finite and numeric")
+        numeric_values.append(numeric)
+    return numeric_values
+
+
+def _finite_weighted_total(
+    weights: list[float], values: list[float], *, name: str
+) -> float:
+    contributions: list[float] = []
+    for weight, value in zip(weights, values, strict=True):
+        contribution = weight * value
+        if not math.isfinite(contribution):
+            raise ValueError(f"{name} must be finite")
+        contributions.append(contribution)
+    total = math.fsum(contributions)
+    if not math.isfinite(total):
+        raise ValueError(f"{name} must be finite")
+    return total
 
 
 def build_distribution_shift_data(distribution: pd.DataFrame) -> pd.DataFrame:

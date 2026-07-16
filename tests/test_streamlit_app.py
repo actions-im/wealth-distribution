@@ -22,6 +22,9 @@ def test_home_uses_two_state_distribution_shift():
     assert "Social Security" in visible_copy
     assert "defined-benefit pensions" in visible_copy
     assert "income-security floor" in visible_copy
+    assert "constrained aggregate inheritance reallocation" in visible_copy
+    assert "does not add or create national wealth" in visible_copy
+    assert "newly created wealth" not in visible_copy.lower()
     assert "Expected inheritance horizon (years)" in [slider.label for slider in app.slider]
 
 
@@ -48,3 +51,6 @@ def test_age_distribution_shift_page_renders_six_within_age_views():
     assert set(headings) == {"<25", "25–34", "35–44", "45–54", "55–64", "65+"}
     assert len(headings) == 6
     assert len(app.get("plotly_chart")) == 6
+    assert "constrained aggregate inheritance reallocation" in visible_copy
+    assert "does not add or create national wealth" in visible_copy
+    assert "newly created wealth" not in visible_copy.lower()

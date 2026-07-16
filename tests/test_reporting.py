@@ -2,6 +2,7 @@ import pytest
 import pandas as pd
 
 from src.reporting import (
+    validate_inheritance_reallocation_conservation,
     build_age_distribution_shift_data,
     build_distribution_shift_data,
     build_executive_share_table,
@@ -115,6 +116,75 @@ def test_age_distribution_shift_ranks_each_age_bucket_independently():
     assert set(result["group"]) == {"Bottom 50%", "Next 40%", "Next 9%", "Top 1%"}
     shares = result.groupby(["age_group", "state"], observed=True)["share"].sum()
     assert shares.tolist() == pytest.approx([1, 1, 1, 1])
+
+
+def test_inheritance_reallocation_conservation_accepts_equal_weighted_components():
+    data = pd.DataFrame(
+        {
+            "household_weight": [2.0, 3.0],
+            "continuation_expected_inheritance": [30.0, 20.0],
+            "continuation_estate_donor_reserve": [30.0, 20.0],
+        }
+    )
+
+    imbalance = validate_inheritance_reallocation_conservation(data)
+
+    assert imbalance == pytest.approx(0.0)
+
+
+def test_inheritance_reallocation_conservation_rejects_mismatched_components():
+    data = pd.DataFrame(
+        {
+            "household_weight": [1.0, 1.0],
+            "continuation_expected_inheritance": [10.0, 20.0],
+            "continuation_estate_donor_reserve": [10.0, 19.0],
+        }
+    )
+
+    with pytest.raises(ValueError, match="conservation failed"):
+        validate_inheritance_reallocation_conservation(data)
+
+
+def test_inheritance_reallocation_conservation_rejects_nonfinite_weighted_total():
+    data = pd.DataFrame(
+        {
+            "household_weight": [1e308],
+            "continuation_expected_inheritance": [1e308],
+            "continuation_estate_donor_reserve": [1e308],
+        }
+    )
+
+    with pytest.raises(ValueError, match="weighted credits must be finite"):
+        validate_inheritance_reallocation_conservation(data)
+
+
+@pytest.mark.parametrize(
+    ("data", "message"),
+    [
+        (
+            pd.DataFrame(
+                {
+                    "household_weight": [1.0],
+                    "continuation_expected_inheritance": [10.0],
+                }
+            ),
+            "continuation_estate_donor_reserve",
+        ),
+        (
+            pd.DataFrame(
+                {
+                    "household_weight": [1.0],
+                    "continuation_expected_inheritance": [float("nan")],
+                    "continuation_estate_donor_reserve": [10.0],
+                }
+            ),
+            "continuation_expected_inheritance must be finite and numeric",
+        ),
+    ],
+)
+def test_inheritance_reallocation_conservation_rejects_invalid_inputs(data, message):
+    with pytest.raises(ValueError, match=message):
+        validate_inheritance_reallocation_conservation(data)
 
 
 def _metric_specific_distribution():

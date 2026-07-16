@@ -40,8 +40,8 @@ st.markdown(
     "Conventional net worth measures owned assets minus liabilities. This report also asks a different "
     "question: how are modeled lifetime economic resources distributed when expected labor earnings, "
     "Social Security, defined-benefit pensions, and a scenario-based income-security floor are valued explicitly? "
-    "The measures are shown together, "
-    "with their differences and limitations visible."
+    "The all-modeled-resources state also includes a constrained aggregate inheritance reallocation. "
+    "The measures are shown together, with their differences and limitations visible."
 )
 
 
@@ -67,9 +67,12 @@ st.caption(
 st.subheader("How including future resources changes the distribution")
 st.markdown(
     "The second bar adds **future labor earnings, Social Security, defined-benefit pensions, and a "
-    "modeled income-security floor** "
+    "modeled income-security floor**, plus a **constrained aggregate inheritance reallocation**, "
     "to conventional net worth. It is labeled *all modeled future resources* because these values "
-    "are estimates—not liquid or transferable assets."
+    "are estimates—not liquid or transferable assets. The inheritance component credits discounted "
+    "expectation values and offsets the same weighted aggregate against mortality-weighted reserves for "
+    "estate-intending owners; it does not add or create national wealth. Conventional "
+    "net worth remains a current-ownership measure and is not changed by this reallocation."
 )
 st.plotly_chart(
     distribution_shift_figure(shift_data),
@@ -80,7 +83,7 @@ st.caption(
     "Each bar totals 100% and is independently ranked under its own measure. Percentage-point "
     "changes compare rank-group shares, not the movement of the same households. Source: Federal "
     "Reserve 2022 SCF summary and full public files; SSA mortality and 2022 program parameters; "
-    "model calculations in this repository."
+    "SCF inheritance-expectation and estate-intent fields; model calculations in this repository."
 )
 st.page_link(
     "pages/07_Methodology.py",
@@ -96,7 +99,8 @@ with st.expander("Definitions, components, and exclusions"):
         "contributions and the selected payable factor.\n"
         "- **Continuation resources:** conventional net worth plus labor earnings and retirement claims under "
         "continued earnings and pension accrual through retirement, plus a modeled income-security top-up "
-        "when projected annual income is below the selected benchmark.\n"
+        "when projected annual income is below the selected benchmark, and a constrained aggregate inheritance "
+        "reallocation. The inheritance credit and donor reserve offset in the weighted national total.\n"
         "- **Excluded:** unsupported Social Security spousal/survivor benefits and DB survivor annuities without "
         "joint-life inputs. Defined-contribution balances are never added twice."
     )
