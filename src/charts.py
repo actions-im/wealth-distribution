@@ -57,66 +57,26 @@ def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
                 legendgroup=group,
                 showlegend=state == SHIFT_STATES[0],
                 marker={"color": color, "line": {"color": "#FFFFFF", "width": 1.5}},
-                text=[f"{share:.1%}" if share >= 0.055 else ""],
+                text=[
+                    f"{share:.1%} [{dollars_trillions(float(row['weighted_total']))}]"
+                    if share >= 0.055
+                    else ""
+                ],
                 textposition="inside",
                 insidetextanchor="middle",
-                textfont={"color": SHIFT_TEXT_COLORS[group], "size": 15},
-                customdata=[
-                    [
-                        float(row["weighted_total"]),
-                        float(row["household_share"]),
-                        str(row["rank_basis"]),
-                        float(row["change_pp"]),
-                    ]
-                ],
-                hovertemplate=(
-                    f"<b>{group}</b><br>{state}<br>"
-                    "Resource share: %{x:.1%}<br>"
-                    "Weighted total: $%{customdata[0]:,.0f}<br>"
-                    "Weighted household share: %{customdata[1]:.1%}<br>"
-                    "Rank basis: %{customdata[2]}<br>"
-                    "Change: %{customdata[3]:+.1f} pp<extra></extra>"
-                ),
+                textfont={"color": SHIFT_TEXT_COLORS[group], "size": 12},
+                hoverinfo="skip",
             )
-
-    changes = data.drop_duplicates("group").set_index("group")
-    totals = data.pivot(index="group", columns="state", values="weighted_total")
-    annotation_positions = [0.125, 0.375, 0.625, 0.875]
-    for x_position, group in zip(annotation_positions, SHIFT_COLORS, strict=True):
-        row = changes.loc[group]
-        change = float(row["change_pp"])
-        sign = "+" if change >= 0 else "−"
-        conventional_total = dollars_trillions(
-            float(totals.loc[group, "Conventional net worth"])
-        )
-        future_resources_total = dollars_trillions(
-            float(totals.loc[group, "All modeled future resources"])
-        )
-        figure.add_annotation(
-            x=x_position,
-            y=-0.32,
-            xref="paper",
-            yref="paper",
-            showarrow=False,
-            align="center",
-            text=(
-                f"<b>{group}</b><br>"
-                f"{row['conventional_share']:.1%} [{conventional_total}] → "
-                f"{row['future_resources_share']:.1%} [{future_resources_total}]<br>"
-                f"<b>{sign}{abs(change):.1f} pp</b>"
-            ),
-            font={"size": 13, "color": color_for_change(change)},
-        )
 
     figure.update_layout(
         barmode="stack",
         barnorm=None,
-        height=470,
-        margin={"l": 20, "r": 20, "t": 65, "b": 145},
+        height=370,
+        margin={"l": 20, "r": 20, "t": 65, "b": 45},
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         hoverlabel={"bgcolor": "#FFFFFF", "font": {"color": "#172121"}},
-        hovermode="y",
+        hovermode=False,
         legend={
             "orientation": "h",
             "yanchor": "bottom",
