@@ -22,6 +22,7 @@ def test_home_uses_two_state_distribution_shift():
     assert "Social Security" in visible_copy
     assert "defined-benefit pensions" in visible_copy
     assert "income-security floor" in visible_copy
+    assert "Expected inheritance horizon (years)" in [slider.label for slider in app.slider]
 
 
 def test_home_uses_purpose_built_chart_helper():

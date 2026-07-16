@@ -83,6 +83,16 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
             "It is a modeled income top-up, not a universal entitlement or an SSI eligibility estimate."
         ),
     )
+    inheritance_horizon_years = st.sidebar.slider(
+        "Expected inheritance horizon (years)",
+        min_value=5,
+        max_value=30,
+        value=DEFAULT_ASSUMPTIONS["inheritance_horizon_years"],
+        step=1,
+        help=(
+            "Timing scenario for discounting expected inheritances; it is not observed parent-child timing."
+        ),
+    )
     st.sidebar.caption(SOURCE_NOTE)
     return {
         "wealth_definition": wealth_definition,
@@ -95,6 +105,7 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
         "reentry_probability": reentry_probability,
         "payable_benefit_factor": payable_benefit_factor,
         "income_security_floor_monthly": income_security_floor_monthly,
+        "inheritance_horizon_years": inheritance_horizon_years,
     }
 
 

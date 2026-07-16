@@ -26,6 +26,7 @@ data = load_comprehensive_report_data(
     tax_rate=assumptions["tax_rate"],
     payable_benefit_factor=assumptions["payable_benefit_factor"],
     income_security_floor_monthly=assumptions["income_security_floor_monthly"],
+    inheritance_horizon_years=assumptions["inheritance_horizon_years"],
 )
 distribution = aggregate_ranked_resource_distributions(data)
 shift_data = build_distribution_shift_data(distribution)

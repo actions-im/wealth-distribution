@@ -35,6 +35,7 @@ data = load_comprehensive_report_data(
     assumptions["tax_rate"],
     assumptions["payable_benefit_factor"],
     assumptions["income_security_floor_monthly"],
+    assumptions["inheritance_horizon_years"],
 )
 age_shift_data = build_age_distribution_shift_data(data)
 

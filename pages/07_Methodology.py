@@ -29,6 +29,7 @@ data = load_comprehensive_report_data(
     assumptions["tax_rate"],
     assumptions["payable_benefit_factor"],
     assumptions["income_security_floor_monthly"],
+    assumptions["inheritance_horizon_years"],
 )
 distribution = aggregate_ranked_resource_distributions(data)
 shift_data = build_distribution_shift_data(distribution)
@@ -127,13 +128,14 @@ assumption_labels = {
     "tax_rate": "Flat tax haircut",
     "payable_benefit_factor": "Social Security payable factor",
     "income_security_floor_monthly": "Income-security floor benchmark (monthly 2022 dollars)",
+    "inheritance_horizon_years": "Expected inheritance horizon (years)",
 }
 assumption_rows = []
 for key, label in assumption_labels.items():
     value = assumptions[key]
     rendered = (
         str(value)
-        if key == "retirement_age"
+        if key in {"retirement_age", "inheritance_horizon_years"}
         else f"${float(value):,.0f}" if key == "income_security_floor_monthly" else f"{float(value):.1%}"
     )
     assumption_rows.append(

@@ -40,6 +40,7 @@ def load_comprehensive_report_data(
     tax_rate: float,
     payable_benefit_factor: float,
     income_security_floor_monthly: float,
+    inheritance_horizon_years: int,
 ) -> pd.DataFrame:
     assumptions = ModelAssumptions(
         discount_rate=discount_rate,
@@ -50,5 +51,6 @@ def load_comprehensive_report_data(
         tax_rate=tax_rate,
         payable_benefit_factor=payable_benefit_factor,
         income_security_floor_monthly=income_security_floor_monthly,
+        inheritance_horizon_years=inheritance_horizon_years,
     )
     return load_comprehensive_household_data(assumptions)

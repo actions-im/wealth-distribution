@@ -28,6 +28,7 @@ DEFAULT_ASSUMPTIONS = {
     "reentry_probability": 0.25,
     "payable_benefit_factor": 0.80,
     "income_security_floor_monthly": 622.0,
+    "inheritance_horizon_years": 15,
 }
 
 
@@ -41,6 +42,7 @@ class ModelAssumptions:
     tax_rate: float = 0.0
     payable_benefit_factor: float = 0.80
     income_security_floor_monthly: float = 622.0
+    inheritance_horizon_years: int = 15
     version: str = "2022-baseline-v1"
 
     def __post_init__(self) -> None:
@@ -64,3 +66,9 @@ class ModelAssumptions:
             or self.income_security_floor_monthly < 0
         ):
             raise ValueError("income_security_floor_monthly must be finite and nonnegative")
+        if (
+            isinstance(self.inheritance_horizon_years, bool)
+            or not isinstance(self.inheritance_horizon_years, int)
+            or not 5 <= self.inheritance_horizon_years <= 30
+        ):
+            raise ValueError("inheritance_horizon_years must be an integer between 5 and 30")

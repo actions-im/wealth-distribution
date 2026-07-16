@@ -155,6 +155,14 @@ def test_model_assumptions_reject_nonpositive_real_discount_factor():
         ModelAssumptions(discount_rate=-1)
 
 
+def test_inheritance_horizon_is_validated():
+    assert ModelAssumptions(inheritance_horizon_years=15).inheritance_horizon_years == 15
+
+    for value in (4, 31):
+        with pytest.raises(ValueError, match="inheritance_horizon_years"):
+            ModelAssumptions(inheritance_horizon_years=value)
+
+
 def test_each_distribution_ranks_by_its_own_metric():
     data = pd.DataFrame(
         {
