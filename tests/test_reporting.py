@@ -1,6 +1,11 @@
+import pytest
 import pandas as pd
 
-from src.reporting import build_executive_share_table, build_fixed_rank_decomposition
+from src.reporting import (
+    build_distribution_shift_data,
+    build_executive_share_table,
+    build_fixed_rank_decomposition,
+)
 from src.real_data import (
     aggregate_real_country_distribution_by_quantile,
     build_real_wealth_household_data,
@@ -56,3 +61,58 @@ def test_fixed_rank_view_is_labeled_as_decomposition():
     )
 
     assert "conventional-net-worth rank" in table.attrs["definition"]
+
+
+def test_distribution_shift_collapses_to_four_groups_and_two_states():
+    shift = build_distribution_shift_data(_metric_specific_distribution())
+
+    assert shift["group"].drop_duplicates().tolist() == [
+        "Bottom 50%",
+        "Next 40%",
+        "Next 9%",
+        "Top 1%",
+    ]
+    assert shift["state"].drop_duplicates().tolist() == [
+        "Conventional net worth",
+        "All modeled future resources",
+    ]
+    assert shift.groupby("state", observed=True)["share"].sum().tolist() == pytest.approx(
+        [1, 1]
+    )
+
+
+def test_distribution_shift_combines_top_one_and_calculates_change():
+    shift = build_distribution_shift_data(_metric_specific_distribution())
+    top = shift.loc[shift["group"] == "Top 1%"].set_index("state")
+
+    assert top.loc["Conventional net worth", "share"] == pytest.approx(0.35)
+    assert top.loc["All modeled future resources", "share"] == pytest.approx(0.19)
+    assert top.loc["All modeled future resources", "change_pp"] == pytest.approx(-16.0)
+    assert top.loc["Conventional net worth", "weighted_total"] == 350
+
+
+def _metric_specific_distribution():
+    rows = []
+    values = {
+        "conventional": [0.02, 0.24, 0.39, 0.20, 0.15],
+        "continuation": [0.10, 0.40, 0.31, 0.12, 0.07],
+    }
+    groups = ["Bottom 50%", "50-90%", "90-99%", "99-99.9%", "Top 0.1%"]
+    for measure, shares in values.items():
+        for group, share in zip(groups, shares, strict=True):
+            rows.append(
+                {
+                    "measure": measure,
+                    "rank_group": group,
+                    "wealth_share": share,
+                    "weighted_total": share * 1_000,
+                    "household_share": {
+                        "Bottom 50%": 0.50,
+                        "50-90%": 0.40,
+                        "90-99%": 0.09,
+                        "99-99.9%": 0.009,
+                        "Top 0.1%": 0.001,
+                    }[group],
+                }
+            )
+    return pd.DataFrame(rows)

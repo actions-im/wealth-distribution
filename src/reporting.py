@@ -6,6 +6,77 @@ from src.formatting import percent
 from src.provenance import computed_scf_row_source
 
 
+SHIFT_GROUP_ORDER = ["Bottom 50%", "Next 40%", "Next 9%", "Top 1%"]
+SHIFT_STATE_ORDER = ["Conventional net worth", "All modeled future resources"]
+
+
+def build_distribution_shift_data(distribution: pd.DataFrame) -> pd.DataFrame:
+    """Collapse metric-specific distributions into the two-state headline view."""
+    required = {
+        "measure",
+        "rank_group",
+        "wealth_share",
+        "weighted_total",
+        "household_share",
+    }
+    missing = required - set(distribution.columns)
+    if missing:
+        raise ValueError(f"distribution shift data is missing columns: {sorted(missing)}")
+
+    group_labels = {
+        "Bottom 50%": "Bottom 50%",
+        "50-90%": "Next 40%",
+        "90-99%": "Next 9%",
+        "99-99.9%": "Top 1%",
+        "Top 0.1%": "Top 1%",
+    }
+    state_labels = {
+        "conventional": "Conventional net worth",
+        "continuation": "All modeled future resources",
+    }
+    working = distribution.loc[distribution["measure"].isin(state_labels)].copy()
+    if set(working["measure"]) != set(state_labels):
+        raise ValueError("distribution shift requires conventional and continuation measures")
+    working["group"] = working["rank_group"].map(group_labels)
+    if working["group"].isna().any():
+        unsupported = sorted(working.loc[working["group"].isna(), "rank_group"].unique())
+        raise ValueError(f"unsupported rank groups: {unsupported}")
+    working["state"] = working["measure"].map(state_labels)
+    working["rank_basis"] = working.get(
+        "rank_basis",
+        working["measure"].map(
+            {"conventional": "net_worth", "continuation": "continuation_resources"}
+        ),
+    )
+
+    grouped = (
+        working.groupby(["group", "state"], as_index=False, observed=True)
+        .agg(
+            share=("wealth_share", "sum"),
+            weighted_total=("weighted_total", "sum"),
+            household_share=("household_share", "sum"),
+            rank_basis=("rank_basis", "first"),
+        )
+    )
+    comparison = grouped.pivot(index="group", columns="state", values="share")
+    grouped["conventional_share"] = grouped["group"].map(
+        comparison["Conventional net worth"]
+    )
+    grouped["future_resources_share"] = grouped["group"].map(
+        comparison["All modeled future resources"]
+    )
+    grouped["change_pp"] = 100 * (
+        grouped["future_resources_share"] - grouped["conventional_share"]
+    )
+    grouped["group"] = pd.Categorical(
+        grouped["group"], categories=SHIFT_GROUP_ORDER, ordered=True
+    )
+    grouped["state"] = pd.Categorical(
+        grouped["state"], categories=SHIFT_STATE_ORDER, ordered=True
+    )
+    return grouped.sort_values(["group", "state"]).reset_index(drop=True)
+
+
 def build_executive_share_table(distribution: pd.DataFrame) -> pd.DataFrame:
     table = pd.DataFrame(
         {
