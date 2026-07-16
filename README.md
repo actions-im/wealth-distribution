@@ -4,9 +4,9 @@ An open-source Streamlit report comparing conventional SCF family net worth with
 
 - **Conventional net worth:** SCF assets minus liabilities.
 - **Defensive accrued resources:** net worth plus conservative modeled labor resources, accrued Social Security, and accrued defined-benefit pensions.
-- **Continuation resources:** net worth plus projected labor earnings and retirement claims under continued work and pension accrual.
+- **Continuation resources:** net worth plus projected labor earnings, retirement claims, and a separately disclosed income-security floor scenario.
 
-These measures answer different questions. Modeled labor and retirement resources are personal, risky, nontransferable, and generally illiquid. They are not official Federal Reserve wealth statistics. The app ranks every distribution by its own measure and uses conventional-rank tables only as labeled decompositions.
+These measures answer different questions. Modeled labor, retirement, and income-security resources are personal, risky, nontransferable, and generally illiquid. The income-security floor is calibrated to the 2022 average SSI payment as a scenario benchmark; it is not an eligibility determination or guaranteed payment. They are not official Federal Reserve wealth statistics. The app ranks every distribution by its own measure and uses conventional-rank tables only as labeled decompositions.
 
 ## Run locally
 

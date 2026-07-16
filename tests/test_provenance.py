@@ -29,6 +29,8 @@ def test_number_source_table_maps_calculated_and_assumption_numbers():
     assert any(source_table["Source"].str.contains(SCF_2022_DATASET_LABEL))
     assert any(source_table["Source"].str.contains(ASSUMPTION_SOURCE))
     assert any(source_table["Method"].str.contains("discount_rate"))
+    assert any(source_table["Number category"].str.contains("Income-security floor"))
+    assert any(source_table["Method"].str.contains("622"))
 
 
 def test_chart_source_caption_identifies_computed_scf_source():

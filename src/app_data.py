@@ -39,6 +39,7 @@ def load_comprehensive_report_data(
     reentry_probability: float,
     tax_rate: float,
     payable_benefit_factor: float,
+    income_security_floor_monthly: float,
 ) -> pd.DataFrame:
     assumptions = ModelAssumptions(
         discount_rate=discount_rate,
@@ -48,5 +49,6 @@ def load_comprehensive_report_data(
         reentry_probability=reentry_probability,
         tax_rate=tax_rate,
         payable_benefit_factor=payable_benefit_factor,
+        income_security_floor_monthly=income_security_floor_monthly,
     )
     return load_comprehensive_household_data(assumptions)

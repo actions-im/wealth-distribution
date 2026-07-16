@@ -28,6 +28,7 @@ data = load_comprehensive_report_data(
     assumptions["reentry_probability"],
     assumptions["tax_rate"],
     assumptions["payable_benefit_factor"],
+    assumptions["income_security_floor_monthly"],
 )
 distribution = aggregate_ranked_resource_distributions(data)
 shift_data = build_distribution_shift_data(distribution)
@@ -52,7 +53,7 @@ definitions = pd.DataFrame(
             "Measure": "All modeled future resources",
             "Definition": (
                 "Conventional net worth plus continuation labor earnings, Social Security, and "
-                "defined-benefit pension wealth."
+                "defined-benefit pension wealth, plus a scenario-based income-security floor top-up."
             ),
             "Rank": "SCF families ranked independently by continuation_resources.",
             "Status": "Model-derived from official inputs and visible assumptions.",
@@ -125,11 +126,16 @@ assumption_labels = {
     "reentry_probability": "Non-earner re-entry probability",
     "tax_rate": "Flat tax haircut",
     "payable_benefit_factor": "Social Security payable factor",
+    "income_security_floor_monthly": "Income-security floor benchmark (monthly 2022 dollars)",
 }
 assumption_rows = []
 for key, label in assumption_labels.items():
     value = assumptions[key]
-    rendered = str(value) if key == "retirement_age" else f"{float(value):.1%}"
+    rendered = (
+        str(value)
+        if key == "retirement_age"
+        else f"${float(value):,.0f}" if key == "income_security_floor_monthly" else f"{float(value):.1%}"
+    )
     assumption_rows.append(
         {
             "Assumption": label,
@@ -151,7 +157,9 @@ st.warning(
     "Future earnings are personal, risky, nontransferable, and illiquid. The public model excludes "
     "unsupported Social Security spousal/survivor benefits, DB survivor annuities without joint-life "
     "inputs, and mixed business income that could double count returns already embedded in business equity. "
-    "Headline values are point estimates; replicate-weight intervals are not yet displayed.",
+    "Headline values are point estimates; replicate-weight intervals are not yet displayed. The income-security "
+    "floor is a scenario benchmark, not an estimate that every family qualifies for SSI or another program; it "
+    "also uses only one or two adults because child and state-program eligibility inputs are not modeled.",
     icon=":material/warning:",
 )
 

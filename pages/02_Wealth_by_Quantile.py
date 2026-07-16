@@ -18,6 +18,7 @@ data = load_comprehensive_report_data(
     assumptions["reentry_probability"],
     assumptions["tax_rate"],
     assumptions["payable_benefit_factor"],
+    assumptions["income_security_floor_monthly"],
 )
 distribution = aggregate_ranked_resource_distributions(data)
 distribution["Measure"] = distribution["measure"].map(

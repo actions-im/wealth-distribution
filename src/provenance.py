@@ -41,6 +41,7 @@ def build_shift_number_audit(
             else (
                 "SCF NETWORTH, WGT, respondent/spouse ages and wages, reported Social Security, "
                 "and DB pension benefit fields; SSA mortality and 2022 program parameters"
+                "; SSI average-payment benchmark"
             )
         )
         source_keys = (
@@ -49,6 +50,7 @@ def build_shift_number_audit(
             else (
                 "scf_summary; scf_full; ssa_period_life_2019_tr2022; "
                 "ssa_2022_parameters; ssa_2022_trustees"
+                "; ssa_2022_ssi"
             )
         )
         classification = (
@@ -189,6 +191,26 @@ def build_component_methodology_table(
                 ),
             },
             {
+                "Component": "Income-security floor",
+                "Calculation": (
+                    "For each future year, max(0, monthly benchmark × 12 × adult scaling "
+                    "− expected labor cash income − Social Security cash benefit − DB pension cash benefit); "
+                    "then survival-weight and discount the top-up stream"
+                ),
+                "Source fields": (
+                    "Full SCF respondent/spouse count, age, sex, wages, reported Social Security, and DB plans"
+                ),
+                "Current assumptions": (
+                    f"monthly benchmark=${assumptions['income_security_floor_monthly']:,.0f}; "
+                    "two-adult scaling=1.5×"
+                ),
+                "Source keys": "scf_full; ssa_period_life_2019_tr2022; ssa_2022_ssi",
+                "Important treatment": (
+                    "Scenario benchmark calibrated to the December 2022 average SSI payment; it is not an "
+                    "eligibility determination, entitlement, or transferable asset."
+                ),
+            },
+            {
                 "Component": "Distribution rank and share",
                 "Calculation": (
                     "Rank SCF families independently under each measure; sum value × WGT in the "
@@ -206,7 +228,8 @@ def build_component_methodology_table(
 def chart_source_caption() -> str:
     return (
         f"Source: {COMPUTED_SCF_SOURCE}. Conventional net worth uses networth x wgt. "
-        "The legacy labor-only view adds discounted positive wageinc using the sidebar assumptions."
+        "The comprehensive model adds SCF-calibrated re-entry wages and a nonmarketable income-security "
+        "top-up scenario using the sidebar assumptions."
     )
 
 
@@ -291,6 +314,15 @@ def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFra
             "Number category": "Human-capital liquidity weight",
             "Source": ASSUMPTION_SOURCE,
             "Method": f"Sidebar value: liquidity_weight={assumptions['liquidity_weight']}.",
+        },
+        {
+            "Number category": "Income-security floor benchmark",
+            "Source": "SSA December 2022 SSI average payment plus sidebar assumption",
+            "Method": (
+                f"Sidebar monthly benchmark=${assumptions['income_security_floor_monthly']:,.0f}; "
+                "annual floor is benchmark × 12 for one adult and 1.5× for two adults, net of modeled "
+                "labor, Social Security, and DB pension cash flows."
+            ),
         },
         {
             "Number category": "Wealth quantile breakpoints",

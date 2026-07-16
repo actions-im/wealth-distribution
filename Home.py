@@ -25,6 +25,7 @@ data = load_comprehensive_report_data(
     reentry_probability=assumptions["reentry_probability"],
     tax_rate=assumptions["tax_rate"],
     payable_benefit_factor=assumptions["payable_benefit_factor"],
+    income_security_floor_monthly=assumptions["income_security_floor_monthly"],
 )
 distribution = aggregate_ranked_resource_distributions(data)
 shift_data = build_distribution_shift_data(distribution)
@@ -37,7 +38,8 @@ st.caption(
 st.markdown(
     "Conventional net worth measures owned assets minus liabilities. This report also asks a different "
     "question: how are modeled lifetime economic resources distributed when expected labor earnings, "
-    "Social Security, and defined-benefit pensions are valued explicitly? The measures are shown together, "
+    "Social Security, defined-benefit pensions, and a scenario-based income-security floor are valued explicitly? "
+    "The measures are shown together, "
     "with their differences and limitations visible."
 )
 
@@ -58,11 +60,13 @@ st.caption(
     f"Baseline: {assumptions['discount_rate']:.1%} real discount rate; "
     f"{assumptions['retirement_age']} retirement age; "
     f"{assumptions['payable_benefit_factor']:.0%} Social Security payable factor."
+    f" ${assumptions['income_security_floor_monthly']:,.0f}/month income-security benchmark."
 )
 
 st.subheader("How including future resources changes the distribution")
 st.markdown(
-    "The second bar adds **future labor earnings, Social Security, and defined-benefit pensions** "
+    "The second bar adds **future labor earnings, Social Security, defined-benefit pensions, and a "
+    "modeled income-security floor** "
     "to conventional net worth. It is labeled *all modeled future resources* because these values "
     "are estimates—not liquid or transferable assets."
 )
@@ -90,7 +94,8 @@ with st.expander("Definitions, components, and exclusions"):
         "accrued Social Security, and accrued DB benefits. Social Security is net of modeled future employee "
         "contributions and the selected payable factor.\n"
         "- **Continuation resources:** conventional net worth plus labor earnings and retirement claims under "
-        "continued earnings and pension accrual through retirement.\n"
+        "continued earnings and pension accrual through retirement, plus a modeled income-security top-up "
+        "when projected annual income is below the selected benchmark.\n"
         "- **Excluded:** unsupported Social Security spousal/survivor benefits and DB survivor annuities without "
         "joint-life inputs. Defined-contribution balances are never added twice."
     )

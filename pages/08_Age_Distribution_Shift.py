@@ -34,6 +34,7 @@ data = load_comprehensive_report_data(
     assumptions["reentry_probability"],
     assumptions["tax_rate"],
     assumptions["payable_benefit_factor"],
+    assumptions["income_security_floor_monthly"],
 )
 age_shift_data = build_age_distribution_shift_data(data)
 
@@ -49,7 +50,8 @@ st.info(
 )
 st.caption(
     "Unit: SCF family; age: survey respondent's age. Modeled future resources include estimated future "
-    "labor earnings, Social Security, and defined-benefit pensions, subject to the active assumptions."
+    "labor earnings, Social Security, defined-benefit pensions, and a modeled income-security floor, subject "
+    "to the active assumptions."
 )
 
 age_columns = st.columns(2)

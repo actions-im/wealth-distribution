@@ -21,6 +21,7 @@ def test_home_uses_two_state_distribution_shift():
     assert "future labor earnings" in visible_copy
     assert "Social Security" in visible_copy
     assert "defined-benefit pensions" in visible_copy
+    assert "income-security floor" in visible_copy
 
 
 def test_home_uses_purpose_built_chart_helper():

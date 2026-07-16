@@ -57,6 +57,14 @@
     "archive_member": null,
     "sha256": null
   },
+  "ssa_2022_ssi": {
+    "provider": "Social Security Administration",
+    "url": "https://www.ssa.gov/policy/docs/statcomps/ssi_asr/2022/index.html",
+    "vintage": "December 2022 SSI recipients and average monthly payment",
+    "filename": "ssa_ssi_annual_report_2022.html",
+    "archive_member": null,
+    "sha256": null
+  },
   "fed_z1_db_pensions": {
     "provider": "Federal Reserve Board",
     "url": "https://www.federalreserve.gov/releases/z1/20250911/html/l117.htm",

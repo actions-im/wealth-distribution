@@ -71,6 +71,18 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
         DEFAULT_ASSUMPTIONS["payable_benefit_factor"],
         step=0.05,
     )
+    income_security_floor_monthly = st.sidebar.slider(
+        "Income-security floor benchmark (monthly 2022 dollars)",
+        min_value=0,
+        max_value=841,
+        value=int(DEFAULT_ASSUMPTIONS["income_security_floor_monthly"]),
+        step=1,
+        format="$%d",
+        help=(
+            "Scenario benchmark calibrated to the December 2022 average SSI payment ($622). "
+            "It is a modeled income top-up, not a universal entitlement or an SSI eligibility estimate."
+        ),
+    )
     st.sidebar.caption(SOURCE_NOTE)
     return {
         "wealth_definition": wealth_definition,
@@ -82,6 +94,7 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
         "liquidity_weight": liquidity_weight,
         "reentry_probability": reentry_probability,
         "payable_benefit_factor": payable_benefit_factor,
+        "income_security_floor_monthly": income_security_floor_monthly,
     }
 
 
