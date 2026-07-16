@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 
 from src.config import DEFAULT_ASSUMPTIONS
@@ -94,8 +96,30 @@ def test_long_form_docs_disclose_inheritance_reallocation_limits():
     ].iloc[0]
     inheritance_copy = " ".join(inheritance_row.astype(str)).lower()
     assert "scf expectation field value" in inheritance_copy
+    assert (
+        "scf expectation field values, including scf imputation where applicable"
+        in inheritance_copy
+    )
     assert "reported x5821" not in inheritance_copy
     assert "reported amount" not in inheritance_copy
+
+    source_method = build_number_source_table(DEFAULT_ASSUMPTIONS).loc[
+        lambda table: table["Number category"] == "Expected-inheritance reallocation",
+        "Method",
+    ].iloc[0].lower()
+    assert (
+        "scf expectation field values, including scf imputation where applicable"
+        in source_method
+    )
+
+    for public_artifact in (
+        "src/inheritance.py",
+        "docs/plans/2026-07-15-inheritance-reallocation-design.md",
+        "docs/plans/2026-07-15-inheritance-reallocation-implementation.md",
+    ):
+        artifact_copy = Path(public_artifact).read_text().lower()
+        assert "reported expectation" not in artifact_copy
+        assert "observed expectation" not in artifact_copy
 
 
 def test_shift_number_audit_covers_every_share_total_and_change():

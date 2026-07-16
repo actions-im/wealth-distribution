@@ -4,7 +4,7 @@
 
 **Goal:** Add a conservative, nationally conserved expected-inheritance reallocation to continuation resources while leaving conventional net worth unchanged.
 
-**Architecture:** Load SCF inheritance expectations and estate-intent answers into household records. A pure allocator discounts reported recipient claims, derives mortality-weighted donor capacity, and writes equal weighted credits and reserves subject to a funding cap. Apply its two components only after all SCF families are loaded, then disclose their sources and limitations in the report.
+**Architecture:** Load SCF inheritance expectation field values and estate-intent answers into household records. A pure allocator discounts positive SCF expectation field values (including SCF imputation where applicable), derives mortality-weighted donor capacity, and writes equal weighted credits and reserves subject to a funding cap. Apply its two components only after all SCF families are loaded, then disclose their sources and limitations in the report.
 
 **Tech Stack:** Python 3.12, pandas, Streamlit, pytest, Ruff; Federal Reserve 2022 SCF full and summary files; existing SSA life-table loader.
 
@@ -56,7 +56,7 @@ git add src/config.py src/ui.py src/app_data.py Home.py pages/07_Methodology.py 
 git commit -m "feat: add inheritance horizon scenario control"
 ~~~
 
-### Task 2: Load the observed inheritance responses
+### Task 2: Load SCF inheritance field values
 
 **Files:**
 - Modify: src/scf_detailed.py lines 22-110
@@ -93,7 +93,7 @@ Expected: PASS.
 
 ~~~bash
 git add src/scf_detailed.py tests/test_scf_detailed.py
-git commit -m "feat: load reported inheritance expectations"
+git commit -m "feat: load SCF inheritance field values"
 ~~~
 
 ### Task 3: Implement a pure conservation-safe allocator

@@ -3,8 +3,9 @@
 ## Decision
 
 Add a separately labeled **intergenerational reallocation** component to the
-continuation-resource measure. It assigns a present value of explicitly
-reported expected inheritances to recipient families and subtracts the same
+continuation-resource measure. It assigns the present value of positive SCF
+expectation field values (including SCF imputation where applicable) to recipient
+families and subtracts the same
 weighted present value from statistically eligible donor families. It does not
 increase aggregate national resources.
 
@@ -14,9 +15,9 @@ probate entitlement, or a prediction of any particular family transfer.
 ## Why this model
 
 The existing continuation measure values a family's future labor income and
-retirement cash flows. A family that reports a substantial expected inheritance
-can also have additional economic security, even though the asset is currently
-owned by another family. Ignoring that expectation is asymmetric in a
+retirement cash flows. A family with affirmative `X5819` and a positive `X5821`
+SCF expectation field value can also have additional economic security, even
+though the asset is currently owned by another family. Ignoring that expectation is asymmetric in a
 lifetime-resource measure.
 
 Simply multiplying an older owner's net worth by survival probability would be
@@ -43,9 +44,10 @@ offset is an aggregate statistical allocation, not a parent-child match.
 
 ### Recipient claim
 
-For each family reporting `X5819 = yes`, let `A_i` be the positive reported
-expected amount. With a user-visible horizon `H` and the existing real discount
-rate `r`, the initial claim is:
+For each family with affirmative `X5819`, let `A_i` be the positive `X5821` SCF
+expectation field value (including SCF imputation where applicable). With a
+user-visible horizon `H` and the existing real discount rate `r`, the initial
+claim is:
 
 ```text
 claim_i = A_i / (1 + r)^H
@@ -53,8 +55,8 @@ claim_i = A_i / (1 + r)^H
 
 The default horizon is 15 years. It is a scenario control, not an estimate of a
 respondent's parent's age or a forecast of probate timing. The base model adds
-no invented probability haircut: the respondent's reported expectation is the
-observable input. The methodology page will make this limitation prominent.
+no invented probability haircut: the SCF expectation field value is the model
+input. The methodology page will make this limitation prominent.
 
 ### Eligible donor capacity
 
@@ -68,7 +70,7 @@ capacity_j = W_j × P(death within H years | respondent age, sex)
 
 The probability comes from the existing SSA period life table. This makes an
 otherwise identical older estate-intending family supply more near-term expected
-transfer capacity than a younger one. Families reporting `possibly` or `no` are
+transfer capacity than a younger one. Families with `X5825` coded `possibly` or `no` are
 not donor candidates in the default scenario; this avoids an arbitrary partial
 estate-intent weight.
 
@@ -89,8 +91,9 @@ capacity. If no donor capacity is available, no inheritance credit is granted.
 The calculation retains a full audit record of the unallocated recipient claim.
 
 At the default 15-year horizon, the 2022 SCF's approximately $17.6 trillion of
-reported nominal expected inheritances has a roughly $10.5 trillion real present
-value at a 3.5% discount rate. The affirmative-estate, mortality-weighted donor
+positive nominal SCF expectation field-value amounts (including SCF imputation
+where applicable) have a roughly $10.5 trillion real present value at a 3.5%
+discount rate. The affirmative-estate, mortality-weighted donor
 capacity is roughly $42.2 trillion, so the funding cap does not bind in the
 baseline. These are diagnostic estimates, not externally validated forecasts.
 
@@ -139,7 +142,7 @@ SCF cannot identify them well enough for a family-level estimate.
 
 ## Tests and acceptance criteria
 
-1. Recipient claims discount reported positive `X5821` amounts by the selected
+1. Recipient claims discount positive SCF expectation field values in `X5821` by the selected
    horizon and real discount rate.
 2. At positive capacity, weighted recipient credits equal weighted donor
    reserves within a tight numerical tolerance.

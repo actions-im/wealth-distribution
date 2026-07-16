@@ -220,8 +220,8 @@ def build_component_methodology_table(
             {
                 "Component": "Expected inheritance reallocation",
                 "Calculation": (
-                    "Discounted recipient claims from positive SCF expectation field values in X5821 when X5819 "
-                    "is affirmative; "
+                    "Discounted recipient claims from positive SCF expectation field values, including SCF "
+                    "imputation where applicable, when X5819 is affirmative and X5821 is positive; "
                     "mortality-weighted estate donor capacity is positive NETWORTH × probability of death within "
                     "the active horizon for affirmative X5825 donors; funding cap=min(claims, capacity); equal "
                     "weighted credit/reserve conservation applies proportional recipient and donor scales"
@@ -360,8 +360,8 @@ def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFra
             "Number category": "Expected-inheritance reallocation",
             "Source": f"{SCF_2022_DATASET_LABEL}, SSA mortality, plus sidebar assumptions",
             "Method": (
-                "Use affirmative SCF X5819 and positive SCF expectation field values in X5821 to discount "
-                "recipient claims; "
+                "Use affirmative SCF X5819 and positive SCF expectation field values, including SCF imputation "
+                "where applicable, in X5821 to discount recipient claims; "
                 "use affirmative X5825, NETWORTH, respondent age and sex, and SSA mortality to derive "
                 "donor capacity. The weighted reallocation is capped at min(claims, capacity) and credits "
                 "equal reserves; the sidebar horizon is "

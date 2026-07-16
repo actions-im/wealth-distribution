@@ -31,9 +31,9 @@ class InheritanceDiagnostics:
 
 
 def discounted_inheritance_claim(amount: float, years: int, discount_rate: float) -> float:
-    """Discount a reported inheritance amount to the scenario horizon.
+    """Discount a positive SCF expectation field value to the scenario horizon.
 
-    SCF invalid, missing, or nonpositive reported amounts are treated as no claim.
+    Invalid, missing, or nonpositive SCF field values are treated as no claim.
     """
     rate = _validate_horizon_and_discount(horizon_years=years, discount_rate=discount_rate)
     numeric_amount = _finite_nonnegative_or_zero(amount)
