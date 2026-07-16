@@ -2,14 +2,24 @@ from __future__ import annotations
 
 from pathlib import Path
 from dataclasses import dataclass
+import math
 from typing import Iterable, Mapping
 
 import pandas as pd
 
 from src.actuarial import conditional_survival
 from src.config import AGE_BUCKETS, WEALTH_QUANTILES, ModelAssumptions
-from src.human_capital import estimate_human_capital, estimate_labor_wealth
-from src.pensions import DefinedBenefitPlan, value_defined_benefit_plan
+from src.human_capital import (
+    estimate_human_capital,
+    estimate_labor_wealth,
+    projected_labor_income_stream,
+)
+from src.income_security import value_income_security_floor
+from src.pensions import (
+    DefinedBenefitPlan,
+    defined_benefit_income_stream,
+    value_defined_benefit_plan,
+)
 from src.scf_detailed import (
     DetailedHouseholdInput,
     PersonInput,
@@ -17,7 +27,11 @@ from src.scf_detailed import (
     load_detailed_scf,
 )
 from src.scf_loader import download_scf_extract, load_scf_extract
-from src.social_security import SocialSecurityPerson, social_security_wealth
+from src.social_security import (
+    SocialSecurityPerson,
+    social_security_income_stream,
+    social_security_wealth,
+)
 from src.source_manifest import download_artifact, load_source_registry
 from src.ssa_loader import load_ssa_period_life_table
 from src.weighted_stats import (
@@ -60,6 +74,7 @@ class ComprehensiveHouseholdInput:
     continuation_social_security: float
     accrued_db_pension: float
     continuation_db_pension: float
+    continuation_income_security_floor: float = 0.0
     exclusions: tuple[str, ...] = ()
     source_version: str = "scf-2022"
     assumption_version: str = "2022-baseline-v1"
@@ -74,6 +89,7 @@ class ComprehensiveHouseholdRecord:
     continuation_social_security: float
     accrued_db_pension: float
     continuation_db_pension: float
+    continuation_income_security_floor: float
     defensive_resources: float
     continuation_resources: float
     exclusions: tuple[str, ...]
@@ -93,6 +109,7 @@ def build_comprehensive_household(
         household.continuation_social_security,
         household.accrued_db_pension,
         household.continuation_db_pension,
+        household.continuation_income_security_floor,
     )
     if any(pd.isna(value) for value in values):
         raise ValueError("comprehensive household components cannot be missing")
@@ -107,6 +124,7 @@ def build_comprehensive_household(
         + household.continuation_labor
         + household.continuation_social_security
         + household.continuation_db_pension
+        + household.continuation_income_security_floor
     )
     return ComprehensiveHouseholdRecord(
         **household.__dict__,
@@ -139,16 +157,28 @@ def value_detailed_household(
     survival = {owner: future_survival(person) for owner, person in people}
 
     labor_values = {"defensive": 0.0, "continuation": 0.0}
+    continuation_labor_streams: dict[str, list[float]] = {}
     for owner, person in people:
         if not survival[owner]:
             exclusions.add(f"labor_missing_survival_{owner}")
             continue
+        reentry_income = 0.0
+        if person.age < assumptions.retirement_age and reentry_wage_schedule:
+            reentry_income = float(
+                reentry_wage_schedule.get((person.sex, age_group(person.age)), 0.0)
+            )
+        continuation_labor_streams[owner] = projected_labor_income_stream(
+            current_income=person.annual_wage,
+            age=person.age,
+            retirement_age=assumptions.retirement_age,
+            reentry_income=reentry_income,
+            reentry_probability=assumptions.reentry_probability,
+            employment_probability=assumptions.employment_probability,
+            wage_growth=assumptions.wage_growth,
+            tax_rate=assumptions.tax_rate,
+            mode="continuation",
+        )
         for mode in labor_values:
-            reentry_income = 0.0
-            if person.age < assumptions.retirement_age and reentry_wage_schedule:
-                reentry_income = float(
-                    reentry_wage_schedule.get((person.sex, age_group(person.age)), 0.0)
-                )
             labor_values[mode] += estimate_labor_wealth(
                 current_income=person.annual_wage,
                 age=person.age,
@@ -166,6 +196,7 @@ def value_detailed_household(
     continuation_labor = labor_values["continuation"]
 
     social_values = {"accrued": 0.0, "continuation": 0.0}
+    continuation_social_streams: dict[str, list[float]] = {}
     for owner, person in people:
         if not survival[owner]:
             exclusions.add(f"social_security_missing_survival_{owner}")
@@ -189,8 +220,18 @@ def value_detailed_household(
             )
             social_values[mode] += result.net
             exclusions.update(result.exclusions)
+        continuation_social_streams[owner] = social_security_income_stream(
+            ss_person,
+            survival=survival[owner],
+            payable_factor=assumptions.payable_benefit_factor,
+            retirement_age=assumptions.retirement_age,
+            mode="continuation",
+        )
 
     pension_values = {"accrued": 0.0, "continuation": 0.0}
+    continuation_pension_streams: dict[str, list[list[float]]] = {
+        owner: [] for owner, _ in people
+    }
     for pension in household.db_pensions:
         person = household.spouse if pension.owner == "spouse" else household.respondent
         if person is None or not survival.get(pension.owner):
@@ -214,6 +255,41 @@ def value_detailed_household(
             )
             pension_values[mode] += result.present_value
             exclusions.update(result.exclusions)
+        continuation_pension_streams[pension.owner].append(
+            defined_benefit_income_stream(
+                plan,
+                mode="continuation",
+                years=len(survival[pension.owner]),
+            )
+        )
+
+    horizon = max((len(values) for values in survival.values()), default=0)
+    annual_other_income = [0.0] * horizon
+    household_survival = [0.0] * horizon
+    for period in range(horizon):
+        survival_values = [
+            curve[period] for curve in survival.values() if period < len(curve)
+        ]
+        household_survival[period] = (
+            1 - math.prod(1 - value for value in survival_values)
+            if survival_values
+            else 0.0
+        )
+        for owner, _ in people:
+            if period < len(continuation_labor_streams.get(owner, [])):
+                annual_other_income[period] += continuation_labor_streams[owner][period]
+            if period < len(continuation_social_streams.get(owner, [])):
+                annual_other_income[period] += continuation_social_streams[owner][period]
+            for stream in continuation_pension_streams.get(owner, []):
+                if period < len(stream):
+                    annual_other_income[period] += stream[period]
+    continuation_income_security_floor = value_income_security_floor(
+        other_income=annual_other_income,
+        monthly_benchmark=assumptions.income_security_floor_monthly,
+        adult_count=len(people),
+        survival=household_survival,
+        discount_rate=assumptions.discount_rate,
+    )
 
     return build_comprehensive_household(
         ComprehensiveHouseholdInput(
@@ -224,6 +300,7 @@ def value_detailed_household(
             continuation_social_security=social_values["continuation"],
             accrued_db_pension=pension_values["accrued"],
             continuation_db_pension=pension_values["continuation"],
+            continuation_income_security_floor=continuation_income_security_floor,
             exclusions=tuple(sorted(exclusions)),
             assumption_version=assumptions.version,
         )

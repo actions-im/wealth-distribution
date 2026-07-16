@@ -27,6 +27,7 @@ DEFAULT_ASSUMPTIONS = {
     "liquidity_weight": 0.25,
     "reentry_probability": 0.25,
     "payable_benefit_factor": 0.80,
+    "income_security_floor_monthly": 622.0,
 }
 
 
@@ -39,6 +40,7 @@ class ModelAssumptions:
     reentry_probability: float = 0.25
     tax_rate: float = 0.0
     payable_benefit_factor: float = 0.80
+    income_security_floor_monthly: float = 622.0
     version: str = "2022-baseline-v1"
 
     def __post_init__(self) -> None:
@@ -57,3 +59,8 @@ class ModelAssumptions:
             value = getattr(self, name)
             if not math.isfinite(value) or not 0 <= value <= 1:
                 raise ValueError(f"{name} must be finite and between zero and one")
+        if (
+            not math.isfinite(self.income_security_floor_monthly)
+            or self.income_security_floor_monthly < 0
+        ):
+            raise ValueError("income_security_floor_monthly must be finite and nonnegative")

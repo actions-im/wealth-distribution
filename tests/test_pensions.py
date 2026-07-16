@@ -2,6 +2,7 @@ from src.pensions import (
     DefinedBenefitPlan,
     defined_benefit_wealth,
     pension_components,
+    defined_benefit_income_stream,
     value_defined_benefit_plan,
 )
 
@@ -67,3 +68,9 @@ def test_survivor_fraction_is_disclosed_but_not_imputed_without_joint_curve():
     value = value_defined_benefit_plan(plan, mode="continuation", survival=[1] * 50)
 
     assert "survivor_annuity_without_joint_survival_curve" in value.exclusions
+
+
+def test_db_income_stream_starts_at_claiming_age():
+    plan = DefinedBenefitPlan(annual_benefit=12_000, current_age=64, claiming_age=66)
+
+    assert defined_benefit_income_stream(plan, mode="continuation", years=4) == [0, 12_000, 12_000, 12_000]

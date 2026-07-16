@@ -69,6 +69,24 @@ def defined_benefit_wealth(
     )
 
 
+def defined_benefit_income_stream(
+    plan: DefinedBenefitPlan,
+    *,
+    mode: PensionMode,
+    years: int,
+) -> list[float]:
+    """Return annual DB cash benefits for floor netting before survival weighting."""
+    if mode not in {"accrued", "continuation"}:
+        raise ValueError("mode must be 'accrued' or 'continuation'")
+    if years < 0:
+        raise ValueError("years must be nonnegative")
+    if plan.account_type:
+        return [0.0] * years
+    benefit = plan.annual_benefit * (plan.accrued_fraction if mode == "accrued" else 1.0)
+    start = max(plan.claiming_age - plan.current_age, 1) - 1
+    return [benefit if period >= start else 0.0 for period in range(years)]
+
+
 def value_defined_benefit_plan(
     plan: DefinedBenefitPlan,
     *,

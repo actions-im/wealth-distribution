@@ -8,6 +8,7 @@ from src.human_capital import (
     estimate_household_labor_wealth,
     estimate_human_capital,
     estimate_labor_wealth,
+    projected_labor_income_stream,
 )
 
 
@@ -106,3 +107,18 @@ def test_defensive_mode_does_not_assume_real_wage_growth():
     )
 
     assert continuation > defensive
+
+
+def test_projected_labor_income_stream_uses_reentry_wage_for_non_earner():
+    stream = projected_labor_income_stream(
+        current_income=0,
+        reentry_income=40_000,
+        reentry_probability=0.25,
+        age=30,
+        retirement_age=32,
+        employment_probability=0.95,
+        wage_growth=0.0,
+        tax_rate=0.0,
+    )
+
+    assert stream == pytest.approx([10_000, 10_000])

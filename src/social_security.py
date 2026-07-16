@@ -126,3 +126,30 @@ def social_security_wealth(
         credited_years=credited_years,
         used_reported_benefit=used_reported_benefit,
     )
+
+
+def social_security_income_stream(
+    person: SocialSecurityPerson,
+    *,
+    survival: Sequence[float],
+    payable_factor: float,
+    retirement_age: int,
+    mode: SocialSecurityMode = "continuation",
+) -> list[float]:
+    """Return annual scheduled Social Security cash benefits for floor netting."""
+    result = social_security_wealth(
+        person,
+        mode=mode,
+        survival=survival,
+        discount_rate=0.0,
+        payable_factor=payable_factor,
+        retirement_age=retirement_age,
+    )
+    if person.annual_reported_benefit > 0:
+        start = 0
+    else:
+        start = max(max(person.claiming_age, person.age) - person.age, 1) - 1
+    return [
+        result.annual_scheduled_benefit * payable_factor if index >= start else 0.0
+        for index in range(len(survival))
+    ]

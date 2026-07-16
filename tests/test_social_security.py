@@ -3,6 +3,7 @@ import pytest
 from src.social_security import (
     SocialSecurityPerson,
     claiming_age_factor,
+    social_security_income_stream,
     social_security_wealth,
 )
 from src.ssa_parameters import primary_insurance_amount
@@ -61,3 +62,16 @@ def test_claiming_age_adjustments_have_expected_direction():
     assert claiming_age_factor(62, full_retirement_age=67) < 1
     assert claiming_age_factor(67, full_retirement_age=67) == 1
     assert claiming_age_factor(70, full_retirement_age=67) > 1
+
+
+def test_social_security_income_stream_starts_at_claiming_age():
+    stream = social_security_income_stream(
+        SocialSecurityPerson(age=65, annual_wage=60_000, annual_reported_benefit=0, career_years=35),
+        survival=[1] * 4,
+        payable_factor=0.8,
+        retirement_age=67,
+    )
+
+    assert stream[:1] == pytest.approx([0])
+    assert stream[1:] == pytest.approx([stream[1], stream[1], stream[1]])
+    assert stream[1] > 0

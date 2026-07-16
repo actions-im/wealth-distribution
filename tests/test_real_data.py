@@ -127,6 +127,24 @@ def test_comprehensive_resources_equal_documented_components():
     )
 
 
+def test_comprehensive_resources_include_income_security_floor_separately():
+    row = build_comprehensive_household(
+        ComprehensiveHouseholdInput(
+            net_worth=100,
+            accrued_labor=20,
+            continuation_labor=40,
+            accrued_social_security=30,
+            continuation_social_security=50,
+            accrued_db_pension=10,
+            continuation_db_pension=15,
+            continuation_income_security_floor=5,
+        )
+    )
+
+    assert row.continuation_income_security_floor == 5
+    assert row.continuation_resources == pytest.approx(210)
+
+
 def test_invalid_probability_is_rejected():
     with pytest.raises(ValueError, match="employment_probability"):
         ModelAssumptions(employment_probability=1.2)
@@ -194,6 +212,28 @@ def test_retired_non_earner_does_not_receive_reentry_labor_income():
     )
 
     assert value.continuation_labor == 0
+
+
+def test_high_income_stream_does_not_receive_income_security_top_up():
+    household = DetailedHouseholdInput(
+        row_id=1,
+        family_id=1,
+        implicate=1,
+        respondent=PersonInput(
+            age=30, sex="female", annual_wage=100_000, annual_social_security=0
+        ),
+        spouse=None,
+        db_pensions=(),
+    )
+
+    value = value_detailed_household(
+        net_worth=0,
+        household=household,
+        life_table=_life_table(),
+        assumptions=ModelAssumptions(income_security_floor_monthly=622),
+    )
+
+    assert value.continuation_income_security_floor == 0
 
 
 def _life_table():
