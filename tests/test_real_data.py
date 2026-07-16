@@ -166,40 +166,16 @@ def test_default_comprehensive_household_keeps_prior_totals_without_inheritance(
 
 
 def test_inheritance_reallocation_updates_only_continuation_resources():
-    households = pd.DataFrame(
+    households = _inheritance_households()
+    original_components = households[
         [
-            {
-                "household_id": 1,
-                "household_weight": 2.0,
-                "net_worth": 0.0,
-                "age": 40,
-                "sex": "female",
-                "expected_inheritance_amount": 1_000.0,
-                "expects_sizable_estate": False,
-                "continuation_labor": 10.0,
-                "continuation_social_security": 20.0,
-                "continuation_db_pension": 30.0,
-                "continuation_income_security_floor": 40.0,
-                "defensive_resources": 60.0,
-                "continuation_resources": 100.0,
-            },
-            {
-                "household_id": 2,
-                "household_weight": 3.0,
-                "net_worth": 1_000.0,
-                "age": 60,
-                "sex": "female",
-                "expected_inheritance_amount": 0.0,
-                "expects_sizable_estate": True,
-                "continuation_labor": 1.0,
-                "continuation_social_security": 2.0,
-                "continuation_db_pension": 3.0,
-                "continuation_income_security_floor": 4.0,
-                "defensive_resources": 80.0,
-                "continuation_resources": 1_010.0,
-            },
+            "net_worth",
+            "continuation_labor",
+            "continuation_social_security",
+            "continuation_db_pension",
+            "continuation_income_security_floor",
         ]
-    )
+    ].copy()
 
     result = apply_inheritance_reallocation(
         households,
@@ -214,7 +190,7 @@ def test_inheritance_reallocation_updates_only_continuation_resources():
         result["household_weight"] * result["continuation_estate_donor_reserve"]
     ).sum()
     assert weighted_credits == pytest.approx(weighted_reserves)
-    assert result["net_worth"].tolist() == households["net_worth"].tolist()
+    pd.testing.assert_frame_equal(result[original_components.columns], original_components)
     assert {
         "inheritance_claim",
         "inheritance_credit",
@@ -224,11 +200,11 @@ def test_inheritance_reallocation_updates_only_continuation_resources():
     }.issubset(result.columns)
 
     expected_continuation = (
-        result["net_worth"]
-        + result["continuation_labor"]
-        + result["continuation_social_security"]
-        + result["continuation_db_pension"]
-        + result["continuation_income_security_floor"]
+        original_components["net_worth"]
+        + original_components["continuation_labor"]
+        + original_components["continuation_social_security"]
+        + original_components["continuation_db_pension"]
+        + original_components["continuation_income_security_floor"]
         + result["continuation_expected_inheritance"]
         - result["continuation_estate_donor_reserve"]
     )
@@ -238,6 +214,46 @@ def test_inheritance_reallocation_updates_only_continuation_resources():
     assert result["defensive_resources"].tolist() == households[
         "defensive_resources"
     ].tolist()
+
+
+@pytest.mark.parametrize(
+    ("component", "invalid_value"),
+    [
+        (component, invalid_value)
+        for component in (
+            "net_worth",
+            "continuation_labor",
+            "continuation_social_security",
+            "continuation_db_pension",
+            "continuation_income_security_floor",
+        )
+        for invalid_value in ("not-a-number", float("nan"), float("inf"), -float("inf"))
+    ],
+)
+def test_inheritance_reallocation_rejects_invalid_continuation_components(
+    component, invalid_value
+):
+    households = _inheritance_households()
+    households[component] = households[component].astype(object)
+    households.loc[0, component] = invalid_value
+
+    with pytest.raises(ValueError, match=component):
+        apply_inheritance_reallocation(
+            households,
+            life_table=_inheritance_life_table(),
+            assumptions=ModelAssumptions(inheritance_horizon_years=5),
+        )
+
+
+def test_inheritance_reallocation_rejects_missing_continuation_component():
+    households = _inheritance_households().drop(columns=["continuation_db_pension"])
+
+    with pytest.raises(ValueError, match="continuation_db_pension"):
+        apply_inheritance_reallocation(
+            households,
+            life_table=_inheritance_life_table(),
+            assumptions=ModelAssumptions(inheritance_horizon_years=5),
+        )
 
 
 def test_invalid_probability_is_rejected():
@@ -347,6 +363,43 @@ def _inheritance_life_table():
     return {
         "female": {age: 100.0 - 3.0 * (age - 40) for age in range(40, 66)},
     }
+
+
+def _inheritance_households():
+    return pd.DataFrame(
+        [
+            {
+                "household_id": 1,
+                "household_weight": 2.0,
+                "net_worth": 0.0,
+                "age": 40,
+                "sex": "female",
+                "expected_inheritance_amount": 1_000.0,
+                "expects_sizable_estate": False,
+                "continuation_labor": 10.0,
+                "continuation_social_security": 20.0,
+                "continuation_db_pension": 30.0,
+                "continuation_income_security_floor": 40.0,
+                "defensive_resources": 60.0,
+                "continuation_resources": 100.0,
+            },
+            {
+                "household_id": 2,
+                "household_weight": 3.0,
+                "net_worth": 1_000.0,
+                "age": 60,
+                "sex": "female",
+                "expected_inheritance_amount": 0.0,
+                "expects_sizable_estate": True,
+                "continuation_labor": 1.0,
+                "continuation_social_security": 2.0,
+                "continuation_db_pension": 3.0,
+                "continuation_income_security_floor": 4.0,
+                "defensive_resources": 80.0,
+                "continuation_resources": 1_010.0,
+            },
+        ]
+    )
 
 
 def _raw_scf_rows():

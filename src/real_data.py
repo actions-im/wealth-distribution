@@ -149,25 +149,30 @@ def apply_inheritance_reallocation(
     assumptions: ModelAssumptions,
 ) -> pd.DataFrame:
     """Reallocate expected inheritance claims without changing current net worth."""
+    component_columns = (
+        "net_worth",
+        "continuation_labor",
+        "continuation_social_security",
+        "continuation_db_pension",
+        "continuation_income_security_floor",
+    )
+    missing = set(component_columns).difference(households.columns)
+    if missing:
+        raise ValueError(
+            "inheritance reallocation is missing continuation components: "
+            f"{sorted(missing)}"
+        )
+    for column in component_columns:
+        if not households[column].map(_is_finite_numeric).all():
+            raise ValueError(
+                f"inheritance reallocation {column} must be finite and numeric"
+            )
     allocated, _ = allocate_inheritance_reallocation(
         households,
         life_table=life_table,
         horizon_years=assumptions.inheritance_horizon_years,
         discount_rate=assumptions.discount_rate,
     )
-    component_columns = {
-        "net_worth",
-        "continuation_labor",
-        "continuation_social_security",
-        "continuation_db_pension",
-        "continuation_income_security_floor",
-    }
-    missing = component_columns.difference(allocated.columns)
-    if missing:
-        raise ValueError(
-            "inheritance reallocation is missing continuation components: "
-            f"{sorted(missing)}"
-        )
     allocated["continuation_expected_inheritance"] = allocated["inheritance_credit"]
     allocated["continuation_estate_donor_reserve"] = allocated["estate_donor_reserve"]
     allocated["continuation_resources"] = (
@@ -180,6 +185,15 @@ def apply_inheritance_reallocation(
         - allocated["continuation_estate_donor_reserve"]
     )
     return allocated
+
+
+def _is_finite_numeric(value: object) -> bool:
+    if isinstance(value, (bool, str, bytes)) or type(value).__name__ == "bool":
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
 
 
 def value_detailed_household(
