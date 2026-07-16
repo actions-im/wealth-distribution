@@ -14,6 +14,7 @@ from src.human_capital import (
     estimate_labor_wealth,
     projected_labor_income_stream,
 )
+from src.inheritance import allocate_inheritance_reallocation
 from src.income_security import value_income_security_floor
 from src.pensions import (
     DefinedBenefitPlan,
@@ -75,6 +76,8 @@ class ComprehensiveHouseholdInput:
     accrued_db_pension: float
     continuation_db_pension: float
     continuation_income_security_floor: float = 0.0
+    continuation_expected_inheritance: float = 0.0
+    continuation_estate_donor_reserve: float = 0.0
     exclusions: tuple[str, ...] = ()
     source_version: str = "scf-2022"
     assumption_version: str = "2022-baseline-v1"
@@ -95,6 +98,8 @@ class ComprehensiveHouseholdRecord:
     exclusions: tuple[str, ...]
     source_version: str
     assumption_version: str
+    continuation_expected_inheritance: float = 0.0
+    continuation_estate_donor_reserve: float = 0.0
 
 
 def build_comprehensive_household(
@@ -110,6 +115,8 @@ def build_comprehensive_household(
         household.accrued_db_pension,
         household.continuation_db_pension,
         household.continuation_income_security_floor,
+        household.continuation_expected_inheritance,
+        household.continuation_estate_donor_reserve,
     )
     if any(pd.isna(value) for value in values):
         raise ValueError("comprehensive household components cannot be missing")
@@ -125,12 +132,54 @@ def build_comprehensive_household(
         + household.continuation_social_security
         + household.continuation_db_pension
         + household.continuation_income_security_floor
+        + household.continuation_expected_inheritance
+        - household.continuation_estate_donor_reserve
     )
     return ComprehensiveHouseholdRecord(
         **household.__dict__,
         defensive_resources=float(defensive),
         continuation_resources=float(continuation),
     )
+
+
+def apply_inheritance_reallocation(
+    households: pd.DataFrame,
+    *,
+    life_table: dict[str, dict[int, float]],
+    assumptions: ModelAssumptions,
+) -> pd.DataFrame:
+    """Reallocate expected inheritance claims without changing current net worth."""
+    allocated, _ = allocate_inheritance_reallocation(
+        households,
+        life_table=life_table,
+        horizon_years=assumptions.inheritance_horizon_years,
+        discount_rate=assumptions.discount_rate,
+    )
+    component_columns = {
+        "net_worth",
+        "continuation_labor",
+        "continuation_social_security",
+        "continuation_db_pension",
+        "continuation_income_security_floor",
+    }
+    missing = component_columns.difference(allocated.columns)
+    if missing:
+        raise ValueError(
+            "inheritance reallocation is missing continuation components: "
+            f"{sorted(missing)}"
+        )
+    allocated["continuation_expected_inheritance"] = allocated["inheritance_credit"]
+    allocated["continuation_estate_donor_reserve"] = allocated["estate_donor_reserve"]
+    allocated["continuation_resources"] = (
+        allocated["net_worth"]
+        + allocated["continuation_labor"]
+        + allocated["continuation_social_security"]
+        + allocated["continuation_db_pension"]
+        + allocated["continuation_income_security_floor"]
+        + allocated["continuation_expected_inheritance"]
+        - allocated["continuation_estate_donor_reserve"]
+    )
+    return allocated
 
 
 def value_detailed_household(
@@ -473,6 +522,9 @@ def load_comprehensive_household_data(
                 "implicate": household.implicate,
                 "household_weight": float(base["household_weight"]),
                 "age": household.respondent.age,
+                "sex": household.respondent.sex,
+                "expected_inheritance_amount": household.expected_inheritance_amount,
+                "expects_sizable_estate": household.expects_sizable_estate,
                 **record.__dict__,
                 "exclusions": ";".join(record.exclusions),
             }
@@ -481,7 +533,9 @@ def load_comprehensive_household_data(
         raise ValueError(f"{unmatched} detailed SCF rows did not match the summary extract")
     if not rows:
         raise ValueError("no comprehensive SCF household records were produced")
-    return pd.DataFrame(rows)
+    return apply_inheritance_reallocation(
+        pd.DataFrame(rows), life_table=life_table, assumptions=assumptions
+    )
 
 
 def build_real_wealth_household_data(

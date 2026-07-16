@@ -3,6 +3,7 @@ import pandas as pd
 
 from src.real_data import (
     ComprehensiveHouseholdInput,
+    apply_inheritance_reallocation,
     aggregate_real_country_distribution_by_quantile,
     build_comprehensive_household,
     build_ranked_distributions,
@@ -145,6 +146,100 @@ def test_comprehensive_resources_include_income_security_floor_separately():
     assert row.continuation_resources == pytest.approx(210)
 
 
+def test_default_comprehensive_household_keeps_prior_totals_without_inheritance():
+    row = build_comprehensive_household(
+        ComprehensiveHouseholdInput(
+            net_worth=100,
+            accrued_labor=20,
+            continuation_labor=40,
+            accrued_social_security=30,
+            continuation_social_security=50,
+            accrued_db_pension=10,
+            continuation_db_pension=15,
+        )
+    )
+
+    assert row.continuation_expected_inheritance == 0
+    assert row.continuation_estate_donor_reserve == 0
+    assert row.defensive_resources == pytest.approx(160)
+    assert row.continuation_resources == pytest.approx(205)
+
+
+def test_inheritance_reallocation_updates_only_continuation_resources():
+    households = pd.DataFrame(
+        [
+            {
+                "household_id": 1,
+                "household_weight": 2.0,
+                "net_worth": 0.0,
+                "age": 40,
+                "sex": "female",
+                "expected_inheritance_amount": 1_000.0,
+                "expects_sizable_estate": False,
+                "continuation_labor": 10.0,
+                "continuation_social_security": 20.0,
+                "continuation_db_pension": 30.0,
+                "continuation_income_security_floor": 40.0,
+                "defensive_resources": 60.0,
+                "continuation_resources": 100.0,
+            },
+            {
+                "household_id": 2,
+                "household_weight": 3.0,
+                "net_worth": 1_000.0,
+                "age": 60,
+                "sex": "female",
+                "expected_inheritance_amount": 0.0,
+                "expects_sizable_estate": True,
+                "continuation_labor": 1.0,
+                "continuation_social_security": 2.0,
+                "continuation_db_pension": 3.0,
+                "continuation_income_security_floor": 4.0,
+                "defensive_resources": 80.0,
+                "continuation_resources": 1_010.0,
+            },
+        ]
+    )
+
+    result = apply_inheritance_reallocation(
+        households,
+        life_table=_inheritance_life_table(),
+        assumptions=ModelAssumptions(inheritance_horizon_years=5),
+    )
+
+    weighted_credits = (
+        result["household_weight"] * result["continuation_expected_inheritance"]
+    ).sum()
+    weighted_reserves = (
+        result["household_weight"] * result["continuation_estate_donor_reserve"]
+    ).sum()
+    assert weighted_credits == pytest.approx(weighted_reserves)
+    assert result["net_worth"].tolist() == households["net_worth"].tolist()
+    assert {
+        "inheritance_claim",
+        "inheritance_credit",
+        "estate_donor_capacity",
+        "estate_donor_reserve",
+        "inheritance_reallocation",
+    }.issubset(result.columns)
+
+    expected_continuation = (
+        result["net_worth"]
+        + result["continuation_labor"]
+        + result["continuation_social_security"]
+        + result["continuation_db_pension"]
+        + result["continuation_income_security_floor"]
+        + result["continuation_expected_inheritance"]
+        - result["continuation_estate_donor_reserve"]
+    )
+    assert result["continuation_resources"].tolist() == pytest.approx(
+        expected_continuation.tolist()
+    )
+    assert result["defensive_resources"].tolist() == households[
+        "defensive_resources"
+    ].tolist()
+
+
 def test_invalid_probability_is_rejected():
     with pytest.raises(ValueError, match="employment_probability"):
         ModelAssumptions(employment_probability=1.2)
@@ -246,6 +341,12 @@ def test_high_income_stream_does_not_receive_income_security_top_up():
 
 def _life_table():
     return {sex: {age: 1.0 for age in range(0, 121)} for sex in ("female", "male")}
+
+
+def _inheritance_life_table():
+    return {
+        "female": {age: 100.0 - 3.0 * (age - 40) for age in range(40, 66)},
+    }
 
 
 def _raw_scf_rows():
