@@ -186,6 +186,28 @@ def test_inheritance_reallocation_conservation_rejects_nonfinite_inputs(column, 
         validate_inheritance_reallocation_conservation(data)
 
 
+@pytest.mark.parametrize(
+    "column",
+    [
+        "household_weight",
+        "continuation_expected_inheritance",
+        "continuation_estate_donor_reserve",
+    ],
+)
+def test_inheritance_reallocation_conservation_rejects_negative_inputs(column):
+    data = pd.DataFrame(
+        {
+            "household_weight": [1.0],
+            "continuation_expected_inheritance": [10.0],
+            "continuation_estate_donor_reserve": [10.0],
+        }
+    )
+    data.loc[0, column] = -1.0
+
+    with pytest.raises(ValueError, match=f"{column} must be nonnegative"):
+        validate_inheritance_reallocation_conservation(data)
+
+
 def test_inheritance_reallocation_conservation_rejects_missing_component():
     data = pd.DataFrame(
         {

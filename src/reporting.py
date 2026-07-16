@@ -79,6 +79,8 @@ def _finite_numeric_values(values: pd.Series, *, column: str) -> list[float]:
             raise ValueError(f"{column} must be finite and numeric") from error
         if not math.isfinite(numeric):
             raise ValueError(f"{column} must be finite and numeric")
+        if numeric < 0:
+            raise ValueError(f"{column} must be nonnegative")
         numeric_values.append(numeric)
     return numeric_values
 
