@@ -23,9 +23,14 @@ data = load_report_household_data(
 
 st.title("Source Data")
 st.write(
-    "The interactive charts currently use the Federal Reserve 2022 Survey of Consumer Finances public "
-    "summary extract. The Distributional Financial Accounts and Federal Reserve research links are included "
-    "as source support and cross-check context."
+    "The comprehensive-resource charts use the Federal Reserve 2022 SCF summary and full public files, "
+    "SSA mortality and 2022 program parameters, and Federal Reserve Financial Accounts pension benchmarks. "
+    "The Methodology page maps every headline number to its fields, formulas, and registered sources."
+)
+st.page_link(
+    "pages/07_Methodology.py",
+    label="Open the methodology and number audit",
+    icon=":material/menu_book:",
 )
 st.info(SCF_2022_DATA_NOTE)
 

@@ -77,6 +77,11 @@ st.caption(
     "Reserve 2022 SCF summary and full public files; SSA mortality and 2022 program parameters; "
     "model calculations in this repository."
 )
+st.page_link(
+    "pages/07_Methodology.py",
+    label="Audit every displayed number, formula, and source",
+    icon=":material/menu_book:",
+)
 
 with st.expander("Definitions, components, and exclusions"):
     st.markdown(
