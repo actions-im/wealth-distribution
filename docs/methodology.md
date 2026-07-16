@@ -61,10 +61,10 @@ The stream is survival weighted and discounted using the same real discount rate
 The continuation measure includes a constrained aggregate reallocation of expected inheritances. It uses a positive SCF field value (including SCF imputation where applicable) only where `X5819` says the SCF family expects a substantial future inheritance or transfer and `X5821` has a positive amount. At the selected horizon `H` and real discount rate `r`, the recipient claim is:
 
 ```text
-claim_i = reported amount_i / (1 + r)^H
+claim_i = SCF expectation field value_i / (1 + r)^H
 ```
 
-The horizon is a visible scenario control, not observed transfer timing. Reported expected amounts are used without an invented probability haircut in the base scenario; that is a transparent choice to retain the observed expectation rather than fabricate a family-specific probability.
+The horizon is a visible scenario control, not observed transfer timing. Positive SCF expectation field values are used without an invented probability haircut in the base scenario; that is a transparent choice to retain the survey field value rather than fabricate a family-specific probability.
 
 To fund recipient claims without adding a second copy of existing assets, a family can supply donor capacity only if it has positive `NETWORTH`, affirmative `X5825` sizable-estate intent, and usable respondent age and sex. Its capacity is:
 
@@ -72,7 +72,7 @@ To fund recipient claims without adding a second copy of existing assets, a fami
 capacity_j = NETWORTH_j × P(death within H years | respondent age, sex)
 ```
 
-The mortality probability comes from the SSA period life table. Weighted claims and capacities are summed, the funded amount is `min(claims, capacity)`, and proportional scales give equal weighted recipient credits and donor reserves. This component reallocates reported expectations rather than creating national wealth. Conventional net worth remains unchanged.
+The mortality probability comes from the SSA period life table. Weighted claims and capacities are summed, the funded amount is `min(claims, capacity)`, and proportional scales give equal weighted recipient credits and donor reserves. This component reallocates SCF expectation field values rather than creating national wealth. Conventional net worth remains unchanged.
 
 The public SCF does not link recipient to donor families, so this is not a prediction of an actual parent-child transfer. It is neither current legal ownership nor a guaranteed transfer, and it is not a legal claim. Estate taxes, care costs, consumption, gifts, charity, siblings, and unobserved heirs are not modeled. No future return is added for an inherited asset already valued on the current owner's balance sheet.
 

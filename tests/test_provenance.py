@@ -70,7 +70,7 @@ def test_long_form_docs_disclose_inheritance_reallocation_limits():
     readme = open("README.md").read()
 
     for phrase in (
-        "reallocates reported expectations rather than creating national wealth",
+        "reallocates SCF expectation field values rather than creating national wealth",
         "does not link recipient to donor families",
         "neither current legal ownership nor a guaranteed transfer",
         "Estate taxes, care costs, consumption, gifts, charity, siblings, and unobserved heirs are not modeled",
@@ -84,6 +84,18 @@ def test_long_form_docs_disclose_inheritance_reallocation_limits():
     assert "expected-inheritance reallocation" in readme
     assert "SCF field value (including SCF imputation where applicable)" in methodology
     assert "SCF field values (including SCF imputation where applicable)" in readme
+    assert "reported expectation" not in methodology.lower()
+    assert "observed expectation" not in methodology.lower()
+    assert "reported expectation" not in readme.lower()
+    assert "observed expectation" not in readme.lower()
+
+    inheritance_row = build_component_methodology_table(DEFAULT_ASSUMPTIONS).loc[
+        lambda table: table["Component"] == "Expected inheritance reallocation"
+    ].iloc[0]
+    inheritance_copy = " ".join(inheritance_row.astype(str)).lower()
+    assert "scf expectation field value" in inheritance_copy
+    assert "reported x5821" not in inheritance_copy
+    assert "reported amount" not in inheritance_copy
 
 
 def test_shift_number_audit_covers_every_share_total_and_change():

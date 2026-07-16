@@ -29,6 +29,7 @@ def test_methodology_page_renders_complete_audit_sections():
     assert "model-derived" in visible_text
     assert "constrained aggregate reallocation" in visible_text
     assert "not a legal claim" in visible_text
+    assert "SCF expectation field values (including SCF imputation where applicable)" in visible_text
     assert "consumption is not modeled as an estate reduction" in visible_text
     assert "does not add future returns, yields, rents, dividends, or capital gains" in visible_text
 
