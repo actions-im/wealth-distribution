@@ -56,6 +56,26 @@ max(0, monthly benchmark × 12 × adult scaling
 
 The stream is survival weighted and discounted using the same real discount rate. The default benchmark is $622 per month in 2022 dollars: the December 2022 average SSI payment, used only as an externally observable calibration point. Two-adult families use a 1.5× benchmark scale. The model does not determine SSI or any other program eligibility, does not count a legal entitlement, and does not model children, state programs, assets tests, housing assistance, or benefit interactions. For two-adult households, the probability that at least one adult survives is calculated under an independence approximation.
 
+### Expected inheritance reallocation
+
+The continuation measure includes a constrained aggregate reallocation of reported expected inheritances. It uses a positive reported amount only where `X5819` says the SCF family expects a substantial future inheritance or transfer and `X5821` reports a positive amount. At the selected horizon `H` and real discount rate `r`, the recipient claim is:
+
+```text
+claim_i = reported amount_i / (1 + r)^H
+```
+
+The horizon is a visible scenario control, not observed transfer timing. Reported expected amounts are used without an invented probability haircut in the base scenario; that is a transparent choice to retain the observed expectation rather than fabricate a family-specific probability.
+
+To fund recipient claims without adding a second copy of existing assets, a family can supply donor capacity only if it has positive `NETWORTH`, affirmative `X5825` sizable-estate intent, and usable respondent age and sex. Its capacity is:
+
+```text
+capacity_j = NETWORTH_j × P(death within H years | respondent age, sex)
+```
+
+The mortality probability comes from the SSA period life table. Weighted claims and capacities are summed, the funded amount is `min(claims, capacity)`, and proportional scales give equal weighted recipient credits and donor reserves. This component reallocates reported expectations rather than creating national wealth. Conventional net worth remains unchanged.
+
+The public SCF does not link recipient to donor families, so this is not a prediction of an actual parent-child transfer. It is neither current legal ownership nor a guaranteed transfer, and it is not a legal claim. Estate taxes, care costs, consumption, gifts, charity, siblings, and unobserved heirs are not modeled. No future return is added for an inherited asset already valued on the current owner's balance sheet.
+
 ## Exclusions
 
 - Defined-contribution and account-type balances already present in `NETWORTH` are excluded from incremental pension wealth.
@@ -63,6 +83,9 @@ The stream is survival weighted and discounted using the same real discount rate
 - DB survivor annuities are excluded when a defensible joint-life curve is unavailable.
 - Mixed self-employment and business income is not added wholesale.
 - Child benefits, state and local programs, asset tests, and program-specific eligibility are not modeled in the income-security scenario.
+- Expected-inheritance credits and estate donor reserves are modeled only as a nationally conserved aggregate reallocation; public SCF data do not identify actual donor-recipient relationships.
+- Estate taxes, care costs, consumption, gifts, charitable transfers, sibling shares, and unobserved heirs are not modeled in the expected-inheritance scenario.
+- Expected-inheritance claims do not add future yields, rents, dividends, or capital gains to an asset already priced on the current owner's balance sheet.
 - Liquidity, transferability, collateral value, bequest value, and taxation are not assumed equal across components.
 
 Exclusions are emitted on household records and in reproduction manifests rather than silently replaced without explanation.
@@ -107,6 +130,7 @@ Downloads are hash-verified where deterministic artifacts are available. Generat
 8. SCF top-tail, imputation, and sampling uncertainty remain material; public headlines are currently point estimates.
 9. Cross-sectional lifecycle differences are not evidence about mobility, consumption, utility, political rights, or moral desirability.
 10. Lower comprehensive-resource concentration does not invalidate conventional wealth inequality; it shows a broader estimand has a different distribution.
+11. The inheritance horizon is a scenario control, and public SCF expectation and estate-intent answers are not legally enforceable transfer commitments.
 
 ## Reproduction
 

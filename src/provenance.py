@@ -40,7 +40,8 @@ def build_shift_number_audit(
             if is_conventional
             else (
                 "SCF NETWORTH, WGT, respondent/spouse ages and wages, reported Social Security, "
-                "and DB pension benefit fields; SSA mortality and 2022 program parameters"
+                "and DB pension benefit fields; SCF X5819, X5821, X5825 inheritance responses; "
+                "SSA mortality and 2022 program parameters"
                 "; SSI average-payment benchmark"
             )
         )
@@ -110,11 +111,12 @@ def build_shift_number_audit(
                     "100 × (all modeled future resources share − conventional net-worth share)"
                 ),
                 "Source fields": (
-                    "The two derived resource shares for the same reported rank interval"
+                    "The two derived resource shares for the same reported rank interval; the full-resource "
+                    "state includes SCF X5819, X5821, X5825 inheritance responses and SSA mortality"
                 ),
                 "Source keys": (
                     "scf_summary; scf_full; ssa_period_life_2019_tr2022; "
-                    "ssa_2022_parameters; ssa_2022_trustees"
+                    "ssa_2022_parameters; ssa_2022_trustees; ssa_2022_ssi"
                 ),
                 "Classification": "Model-derived comparison",
             }
@@ -216,6 +218,29 @@ def build_component_methodology_table(
                 ),
             },
             {
+                "Component": "Expected inheritance reallocation",
+                "Calculation": (
+                    "Discounted recipient claims from positive reported X5821 amounts when X5819 is affirmative; "
+                    "mortality-weighted estate donor capacity is positive NETWORTH × probability of death within "
+                    "the active horizon for affirmative X5825 donors; funding cap=min(claims, capacity); equal "
+                    "weighted credit/reserve conservation applies proportional recipient and donor scales"
+                ),
+                "Source fields": (
+                    "Full SCF X5819, X5821, X5825, NETWORTH, household WGT, respondent age and sex; "
+                    "SSA mortality"
+                ),
+                "Current assumptions": (
+                    f"discount={assumptions['discount_rate']:.3f}; "
+                    f"horizon={assumptions['inheritance_horizon_years']} years; "
+                    "reported amount has no invented probability haircut"
+                ),
+                "Source keys": "scf_summary; scf_full; ssa_period_life_2019_tr2022",
+                "Important treatment": (
+                    "Constrained aggregate reallocation, not a legal claim or current legal ownership. "
+                    "The public SCF does not link recipient families to donor families."
+                ),
+            },
+            {
                 "Component": "Distribution rank and share",
                 "Calculation": (
                     "Rank SCF families independently under each measure; sum value × WGT in the "
@@ -234,7 +259,8 @@ def chart_source_caption() -> str:
     return (
         f"Source: {COMPUTED_SCF_SOURCE}. Conventional net worth uses networth x wgt. "
         "The comprehensive model adds SCF-calibrated re-entry wages and a nonmarketable income-security "
-        "top-up scenario using the sidebar assumptions."
+        "top-up scenario using the sidebar assumptions, plus a constrained inheritance reallocation from "
+        "SCF X5819, X5821, and X5825 with mortality-weighted donor reserves."
     )
 
 
@@ -327,6 +353,17 @@ def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFra
                 f"Sidebar monthly benchmark=${assumptions['income_security_floor_monthly']:,.0f}; "
                 "annual floor is benchmark × 12 for one adult and 1.5× for two adults, net of modeled "
                 "labor, Social Security, and DB pension cash flows."
+            ),
+        },
+        {
+            "Number category": "Expected-inheritance reallocation",
+            "Source": f"{SCF_2022_DATASET_LABEL}, SSA mortality, plus sidebar assumptions",
+            "Method": (
+                "Use affirmative SCF X5819 and positive X5821 to discount reported recipient claims; "
+                "use affirmative X5825, NETWORTH, respondent age and sex, and SSA mortality to derive "
+                "donor capacity. The weighted reallocation is capped at min(claims, capacity) and credits "
+                "equal reserves; the sidebar horizon is "
+                f"{assumptions['inheritance_horizon_years']} years."
             ),
         },
         {

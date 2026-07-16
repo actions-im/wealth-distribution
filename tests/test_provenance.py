@@ -4,6 +4,7 @@ from src.config import DEFAULT_ASSUMPTIONS
 from src.provenance import (
     ASSUMPTION_SOURCE,
     COMPUTED_SCF_SOURCE,
+    build_component_methodology_table,
     build_number_source_table,
     build_shift_number_audit,
     chart_source_caption,
@@ -36,6 +37,51 @@ def test_number_source_table_maps_calculated_and_assumption_numbers():
 def test_chart_source_caption_identifies_computed_scf_source():
     assert chart_source_caption().startswith("Source:")
     assert COMPUTED_SCF_SOURCE in chart_source_caption()
+
+
+def test_inheritance_reallocation_provenance_discloses_conserved_allocator():
+    methodology = build_component_methodology_table(DEFAULT_ASSUMPTIONS)
+    row = methodology.loc[
+        methodology["Component"] == "Expected inheritance reallocation"
+    ].iloc[0]
+
+    assert "X5819" in row["Source fields"]
+    assert "X5821" in row["Source fields"]
+    assert "X5825" in row["Source fields"]
+    assert "SSA mortality" in row["Source fields"]
+    assert "horizon=15" in row["Current assumptions"]
+    calculation = row["Calculation"].lower()
+    assert "discounted recipient claims" in calculation
+    assert "mortality-weighted estate donor capacity" in calculation
+    assert "min(claims, capacity)" in calculation
+    assert "equal weighted credit/reserve conservation" in calculation
+    assert "not a legal claim" in row["Important treatment"]
+
+    audit = build_shift_number_audit(_shift_data(), DEFAULT_ASSUMPTIONS)
+    future_rows = audit.loc[
+        audit["Displayed number"].str.contains("All modeled future resources")
+    ]
+    assert future_rows["Source fields"].str.contains("X5819, X5821, X5825").all()
+    assert "inheritance reallocation" in chart_source_caption()
+
+
+def test_long_form_docs_disclose_inheritance_reallocation_limits():
+    methodology = open("docs/methodology.md").read()
+    readme = open("README.md").read()
+
+    for phrase in (
+        "reallocates reported expectations rather than creating national wealth",
+        "does not link recipient to donor families",
+        "neither current legal ownership nor a guaranteed transfer",
+        "Estate taxes, care costs, consumption, gifts, charity, siblings, and unobserved heirs are not modeled",
+        "Conventional net worth remains unchanged",
+        "No future return is added for an inherited asset already valued on the current owner's balance sheet",
+        "visible scenario control, not observed transfer timing",
+        "without an invented probability haircut in the base scenario",
+    ):
+        assert phrase in methodology
+
+    assert "expected-inheritance reallocation" in readme
 
 
 def test_shift_number_audit_covers_every_share_total_and_change():

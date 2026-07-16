@@ -27,6 +27,8 @@ def test_methodology_page_renders_complete_audit_sections():
     assert "independently ranked" in visible_text
     assert "not added again" in visible_text
     assert "model-derived" in visible_text
+    assert "constrained aggregate reallocation" in visible_text
+    assert "not a legal claim" in visible_text
 
 
 def test_methodology_page_configures_clickable_source_urls():

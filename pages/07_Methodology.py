@@ -54,7 +54,8 @@ definitions = pd.DataFrame(
             "Measure": "All modeled future resources",
             "Definition": (
                 "Conventional net worth plus continuation labor earnings, Social Security, and "
-                "defined-benefit pension wealth, plus a scenario-based income-security floor top-up."
+                "defined-benefit pension wealth, plus a scenario-based income-security floor top-up and a "
+                "constrained aggregate inheritance reallocation."
             ),
             "Rank": "SCF families ranked independently by continuation_resources.",
             "Status": "Model-derived from official inputs and visible assumptions.",
@@ -164,7 +165,10 @@ st.warning(
     "replicate-weight intervals are not yet displayed. The income-security "
     "floor is a scenario benchmark, not an estimate that every family qualifies for SSI or another program; it "
     "also uses only one or two adults because child and state-program eligibility inputs are not modeled. For "
-    "two-adult families, its survival calculation assumes independent mortality.",
+    "two-adult families, its survival calculation assumes independent mortality. Expected inheritance is a "
+    "constrained aggregate reallocation of reported SCF expectations, not a legal claim or a current ownership "
+    "record: public SCF data do not link a recipient family to a donor family. It leaves conventional net worth "
+    "unchanged and has no modeled estate taxes, care costs, gifts, charity, siblings, or unobserved heirs.",
     icon=":material/warning:",
 )
 
