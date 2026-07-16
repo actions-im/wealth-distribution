@@ -7,8 +7,10 @@ from src.real_data import (
     build_comprehensive_household,
     build_ranked_distributions,
     build_real_wealth_household_data,
+    value_detailed_household,
 )
 from src.config import ModelAssumptions
+from src.scf_detailed import DetailedHouseholdInput, PersonInput
 
 
 def test_real_household_data_assigns_weighted_scf_quantiles():
@@ -150,6 +152,52 @@ def test_each_distribution_ranks_by_its_own_metric():
     conventional_top = result["conventional"].sort_values("rank_position").iloc[-1]["household_id"]
     defensive_top = result["defensive"].sort_values("rank_position").iloc[-1]["household_id"]
     assert conventional_top != defensive_top
+
+
+def test_working_age_non_earner_uses_scf_calibrated_reentry_wage():
+    household = DetailedHouseholdInput(
+        row_id=1,
+        family_id=1,
+        implicate=1,
+        respondent=PersonInput(age=30, sex="female", annual_wage=0, annual_social_security=0),
+        spouse=None,
+        db_pensions=(),
+    )
+
+    value = value_detailed_household(
+        net_worth=0,
+        household=household,
+        life_table=_life_table(),
+        assumptions=ModelAssumptions(reentry_probability=0.25),
+        reentry_wage_schedule={("female", "25-34"): 40_000},
+    )
+
+    assert value.continuation_labor > 0
+
+
+def test_retired_non_earner_does_not_receive_reentry_labor_income():
+    household = DetailedHouseholdInput(
+        row_id=1,
+        family_id=1,
+        implicate=1,
+        respondent=PersonInput(age=70, sex="female", annual_wage=0, annual_social_security=0),
+        spouse=None,
+        db_pensions=(),
+    )
+
+    value = value_detailed_household(
+        net_worth=0,
+        household=household,
+        life_table=_life_table(),
+        assumptions=ModelAssumptions(retirement_age=67),
+        reentry_wage_schedule={("female", "65-74"): 40_000},
+    )
+
+    assert value.continuation_labor == 0
+
+
+def _life_table():
+    return {sex: {age: 1.0 for age in range(0, 121)} for sex in ("female", "male")}
 
 
 def _raw_scf_rows():

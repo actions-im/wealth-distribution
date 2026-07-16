@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Mapping
 
 import pandas as pd
 
@@ -121,6 +121,7 @@ def value_detailed_household(
     household: DetailedHouseholdInput,
     life_table: dict[str, dict[int, float]],
     assumptions: ModelAssumptions = ModelAssumptions(),
+    reentry_wage_schedule: Mapping[tuple[str, str], float] | None = None,
 ) -> ComprehensiveHouseholdRecord:
     """Value person-level SCF inputs and retain explicit model exclusions."""
     exclusions: set[str] = set()
@@ -143,12 +144,17 @@ def value_detailed_household(
             exclusions.add(f"labor_missing_survival_{owner}")
             continue
         for mode in labor_values:
+            reentry_income = 0.0
+            if person.age < assumptions.retirement_age and reentry_wage_schedule:
+                reentry_income = float(
+                    reentry_wage_schedule.get((person.sex, age_group(person.age)), 0.0)
+                )
             labor_values[mode] += estimate_labor_wealth(
                 current_income=person.annual_wage,
                 age=person.age,
                 retirement_age=assumptions.retirement_age,
                 survival=survival[owner],
-                reentry_income=person.annual_wage,
+                reentry_income=reentry_income,
                 reentry_probability=assumptions.reentry_probability,
                 employment_probability=assumptions.employment_probability,
                 wage_growth=assumptions.wage_growth,
@@ -222,6 +228,33 @@ def value_detailed_household(
             assumption_version=assumptions.version,
         )
     )
+
+
+def build_reentry_wage_schedule(
+    people: Iterable[tuple[PersonInput, float]],
+    *,
+    retirement_age: int,
+) -> dict[tuple[str, str], float]:
+    """Return SCF-weighted median positive wages by sex and respondent-age bucket."""
+    rows = [
+        {
+            "sex": person.sex,
+            "age_group": age_group(person.age),
+            "annual_wage": person.annual_wage,
+            "household_weight": weight,
+        }
+        for person, weight in people
+        if person.age < retirement_age and person.annual_wage > 0 and weight > 0
+    ]
+    if not rows:
+        return {}
+    frame = pd.DataFrame(rows)
+    schedule: dict[tuple[str, str], float] = {}
+    for (sex, bucket), group in frame.groupby(["sex", "age_group"], sort=False):
+        schedule[(str(sex), str(bucket))] = weighted_median(
+            group["annual_wage"], group["household_weight"]
+        )
+    return schedule
 
 
 def build_ranked_distributions(
@@ -328,10 +361,23 @@ def load_comprehensive_household_data(
     summary = normalize_scf_rows(load_scf_extract(summary_path)).set_index("scf_row_id")
     detailed = load_detailed_scf(full_path)
     life_table = load_ssa_period_life_table()
+    detailed_households = [
+        build_detailed_household_input(values) for values in detailed.to_dict("records")
+    ]
+    reentry_people: list[tuple[PersonInput, float]] = []
+    for household in detailed_households:
+        if household.row_id not in summary.index:
+            continue
+        weight = float(summary.loc[household.row_id, "household_weight"])
+        reentry_people.append((household.respondent, weight))
+        if household.spouse is not None:
+            reentry_people.append((household.spouse, weight))
+    reentry_wage_schedule = build_reentry_wage_schedule(
+        reentry_people, retirement_age=assumptions.retirement_age
+    )
     rows: list[dict[str, object]] = []
     unmatched = 0
-    for values in detailed.to_dict("records"):
-        household = build_detailed_household_input(values)
+    for household in detailed_households:
         if household.row_id not in summary.index:
             unmatched += 1
             continue
@@ -341,6 +387,7 @@ def load_comprehensive_household_data(
             household=household,
             life_table=life_table,
             assumptions=assumptions,
+            reentry_wage_schedule=reentry_wage_schedule,
         )
         rows.append(
             {
