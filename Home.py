@@ -6,7 +6,10 @@ from src.app_data import load_comprehensive_report_data
 from src.charts import distribution_shift_figure
 from src.formatting import percent
 from src.real_data import aggregate_ranked_resource_distributions
-from src.reporting import build_distribution_shift_data
+from src.reporting import (
+    build_distribution_shift_data,
+    validate_inheritance_reallocation_conservation,
+)
 from src.ui import methodology_expander, render_assumption_sidebar
 
 
@@ -28,6 +31,7 @@ data = load_comprehensive_report_data(
     income_security_floor_monthly=assumptions["income_security_floor_monthly"],
     inheritance_horizon_years=assumptions["inheritance_horizon_years"],
 )
+validate_inheritance_reallocation_conservation(data)
 distribution = aggregate_ranked_resource_distributions(data)
 shift_data = build_distribution_shift_data(distribution)
 
@@ -69,9 +73,10 @@ st.markdown(
     "The second bar adds **future labor earnings, Social Security, defined-benefit pensions, and a "
     "modeled income-security floor**, plus a **constrained aggregate inheritance reallocation**, "
     "to conventional net worth. It is labeled *all modeled future resources* because these values "
-    "are estimates—not liquid or transferable assets. The inheritance component credits discounted "
-    "expectation values and offsets the same weighted aggregate against mortality-weighted reserves for "
-    "estate-intending owners; it does not add or create national wealth. Conventional "
+    "are estimates—not liquid or transferable assets. Positive inheritance credits are assigned only to "
+    "families with affirmative SCF inheritance-expectation responses and positive field values (including "
+    "SCF imputation where applicable), then offset by the same weighted aggregate of mortality-weighted "
+    "reserves for estate-intending owners; it does not add or create national wealth. Conventional "
     "net worth remains a current-ownership measure and is not changed by this reallocation."
 )
 st.plotly_chart(

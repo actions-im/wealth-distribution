@@ -6,7 +6,11 @@ from src.app_data import load_comprehensive_report_data
 from src.charts import distribution_shift_figure
 from src.formatting import dollars_trillions
 from src.provenance import chart_source_caption
-from src.reporting import AGE_SHIFT_BUCKETS, build_age_distribution_shift_data
+from src.reporting import (
+    AGE_SHIFT_BUCKETS,
+    build_age_distribution_shift_data,
+    validate_inheritance_reallocation_conservation,
+)
 from src.ui import methodology_expander, render_assumption_sidebar
 
 AGE_LABELS = {
@@ -37,6 +41,7 @@ data = load_comprehensive_report_data(
     assumptions["income_security_floor_monthly"],
     assumptions["inheritance_horizon_years"],
 )
+validate_inheritance_reallocation_conservation(data)
 age_shift_data = build_age_distribution_shift_data(data)
 
 st.title("Distribution shifts by age")
@@ -46,8 +51,10 @@ st.write(
 )
 st.info(
     "All modeled future resources include a constrained aggregate inheritance reallocation: discounted "
-    "expectation values are offset by the same weighted aggregate of mortality-weighted reserves for "
-    "estate-intending owners. It does not add or create national wealth. Conventional net "
+    "positive credits are assigned only to families with affirmative SCF inheritance-expectation responses "
+    "and positive field values (including SCF imputation where applicable), then offset by the same weighted "
+    "aggregate of mortality-weighted reserves for estate-intending owners. It does not add or create national "
+    "wealth. Conventional net "
     "worth remains the current-ownership measure and is not changed by the reallocation.",
     icon=":material/account_balance:",
 )

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pandas as pd
+import pytest
 from streamlit.testing.v1 import AppTest
 
 
@@ -23,6 +25,8 @@ def test_home_uses_two_state_distribution_shift():
     assert "defined-benefit pensions" in visible_copy
     assert "income-security floor" in visible_copy
     assert "constrained aggregate inheritance reallocation" in visible_copy
+    assert "affirmative SCF inheritance-expectation" in visible_copy
+    assert "including SCF imputation where applicable" in visible_copy
     assert "does not add or create national wealth" in visible_copy
     assert "newly created wealth" not in visible_copy.lower()
     assert "Expected inheritance horizon (years)" in [slider.label for slider in app.slider]
@@ -33,6 +37,7 @@ def test_home_uses_purpose_built_chart_helper():
 
     assert "distribution_shift_figure" in source
     assert "build_distribution_shift_data" in source
+    assert "validate_inheritance_reallocation_conservation(data)" in source
     assert "px.bar" not in source
 
 
@@ -52,5 +57,30 @@ def test_age_distribution_shift_page_renders_six_within_age_views():
     assert len(headings) == 6
     assert len(app.get("plotly_chart")) == 6
     assert "constrained aggregate inheritance reallocation" in visible_copy
+    assert "affirmative SCF inheritance-expectation" in visible_copy
+    assert "including SCF imputation where applicable" in visible_copy
     assert "does not add or create national wealth" in visible_copy
     assert "newly created wealth" not in visible_copy.lower()
+    assert (
+        "validate_inheritance_reallocation_conservation(data)"
+        in Path("pages/08_Age_Distribution_Shift.py").read_text()
+    )
+
+
+@pytest.mark.parametrize("page_path", ["Home.py", "pages/08_Age_Distribution_Shift.py"])
+def test_distribution_pages_block_unconserved_inheritance_data(monkeypatch, page_path):
+    monkeypatch.setattr(
+        "src.app_data.load_comprehensive_report_data",
+        lambda *args, **kwargs: pd.DataFrame(
+            {
+                "household_weight": [1.0],
+                "continuation_expected_inheritance": [10.0],
+                "continuation_estate_donor_reserve": [9.0],
+            }
+        ),
+    )
+
+    app = AppTest.from_file(page_path, default_timeout=20).run(timeout=20)
+
+    assert app.exception
+    assert "inheritance reallocation conservation failed" in app.exception[0].value

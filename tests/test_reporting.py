@@ -123,7 +123,7 @@ def test_inheritance_reallocation_conservation_accepts_equal_weighted_components
         {
             "household_weight": [2.0, 3.0],
             "continuation_expected_inheritance": [30.0, 20.0],
-            "continuation_estate_donor_reserve": [30.0, 20.0],
+            "continuation_estate_donor_reserve": [45.0, 10.0],
         }
     )
 
@@ -159,31 +159,42 @@ def test_inheritance_reallocation_conservation_rejects_nonfinite_weighted_total(
 
 
 @pytest.mark.parametrize(
-    ("data", "message"),
+    ("column", "message"),
     [
+        ("household_weight", "household_weight must be finite and numeric"),
         (
-            pd.DataFrame(
-                {
-                    "household_weight": [1.0],
-                    "continuation_expected_inheritance": [10.0],
-                }
-            ),
-            "continuation_estate_donor_reserve",
+            "continuation_expected_inheritance",
+            "continuation_expected_inheritance must be finite and numeric",
         ),
         (
-            pd.DataFrame(
-                {
-                    "household_weight": [1.0],
-                    "continuation_expected_inheritance": [float("nan")],
-                    "continuation_estate_donor_reserve": [10.0],
-                }
-            ),
-            "continuation_expected_inheritance must be finite and numeric",
+            "continuation_estate_donor_reserve",
+            "continuation_estate_donor_reserve must be finite and numeric",
         ),
     ],
 )
-def test_inheritance_reallocation_conservation_rejects_invalid_inputs(data, message):
+def test_inheritance_reallocation_conservation_rejects_nonfinite_inputs(column, message):
+    data = pd.DataFrame(
+        {
+            "household_weight": [1.0],
+            "continuation_expected_inheritance": [10.0],
+            "continuation_estate_donor_reserve": [10.0],
+        }
+    )
+    data.loc[0, column] = float("nan")
+
     with pytest.raises(ValueError, match=message):
+        validate_inheritance_reallocation_conservation(data)
+
+
+def test_inheritance_reallocation_conservation_rejects_missing_component():
+    data = pd.DataFrame(
+        {
+            "household_weight": [1.0],
+            "continuation_expected_inheritance": [10.0],
+        }
+    )
+
+    with pytest.raises(ValueError, match="continuation_estate_donor_reserve"):
         validate_inheritance_reallocation_conservation(data)
 
 
