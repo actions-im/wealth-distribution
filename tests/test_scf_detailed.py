@@ -61,7 +61,12 @@ def test_detailed_inputs_keep_people_and_social_security_separate(detailed_scf_r
     assert household.spouse.annual_social_security == 0
 
 
-def test_affirmative_inheritance_expectation_preserves_positive_amount(detailed_scf_row):
+@pytest.mark.parametrize("response", [1, 1.0])
+def test_affirmative_inheritance_expectation_preserves_positive_amount(
+    detailed_scf_row, response
+):
+    detailed_scf_row["x5819"] = response
+
     household = build_detailed_household_input(detailed_scf_row)
 
     assert household.expected_inheritance_amount == pytest.approx(500_000)
@@ -72,6 +77,14 @@ def test_nonaffirmative_inheritance_response_creates_no_future_claim(
     detailed_scf_row, response
 ):
     detailed_scf_row["x5819"] = response
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.expected_inheritance_amount == 0
+
+
+def test_boolean_inheritance_expectation_code_creates_no_future_claim(detailed_scf_row):
+    detailed_scf_row["x5819"] = True
 
     household = build_detailed_household_input(detailed_scf_row)
 
@@ -92,6 +105,14 @@ def test_affirmative_inheritance_response_rejects_nonpositive_or_nonfinite_amoun
     assert household.expected_inheritance_amount == 0
 
 
+def test_boolean_inheritance_amount_creates_no_future_claim(detailed_scf_row):
+    detailed_scf_row["x5821"] = True
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.expected_inheritance_amount == 0
+
+
 @pytest.mark.parametrize(
     "estate_response, expected",
     [(1, True), (None, False), (0, False), (1.5, False), (2, False), (5, False)],
@@ -104,6 +125,14 @@ def test_only_direct_sizable_estate_intent_sets_donor_flag(
     household = build_detailed_household_input(detailed_scf_row)
 
     assert household.expects_sizable_estate is expected
+
+
+def test_boolean_sizable_estate_code_creates_no_donor_intent(detailed_scf_row):
+    detailed_scf_row["x5825"] = True
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.expects_sizable_estate is False
 
 
 def test_future_db_benefit_is_mapped_without_account_balance():

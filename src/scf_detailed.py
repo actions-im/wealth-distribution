@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
+from numbers import Real
 from typing import Mapping
 from pathlib import Path
 from zipfile import ZipFile
@@ -104,14 +105,9 @@ def build_detailed_household_input(row: Mapping[str, object]) -> DetailedHouseho
         )
 
     pensions = _future_db_pensions(values) + _current_db_pensions(values, respondent, spouse)
-    expected_inheritance_amount = 0.0
-    reported_inheritance_amount = _number(values.get("x5821"))
-    if (
-        _number(values.get("x5819")) == 1
-        and math.isfinite(reported_inheritance_amount)
-        and reported_inheritance_amount > 0
-    ):
-        expected_inheritance_amount = reported_inheritance_amount
+    expected_inheritance_amount = _positive_finite_amount(values.get("x5821"))
+    if not _is_affirmative_scf_code(values.get("x5819")):
+        expected_inheritance_amount = 0.0
 
     return DetailedHouseholdInput(
         row_id=row_id,
@@ -121,7 +117,7 @@ def build_detailed_household_input(row: Mapping[str, object]) -> DetailedHouseho
         spouse=spouse,
         db_pensions=tuple(pensions),
         expected_inheritance_amount=expected_inheritance_amount,
-        expects_sizable_estate=_number(values.get("x5825")) == 1,
+        expects_sizable_estate=_is_affirmative_scf_code(values.get("x5825")),
     )
 
 
@@ -187,6 +183,22 @@ def _number(value: object) -> float:
     except (TypeError, ValueError):
         return 0.0
     return number if number == number else 0.0
+
+
+def _is_affirmative_scf_code(value: object) -> bool:
+    return (
+        isinstance(value, Real)
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+        and value == 1
+    )
+
+
+def _positive_finite_amount(value: object) -> float:
+    if isinstance(value, bool):
+        return 0.0
+    amount = _number(value)
+    return amount if math.isfinite(amount) and amount > 0 else 0.0
 
 
 def _sex(value: object) -> str:
