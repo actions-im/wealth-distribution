@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.config import AGE_BUCKETS
 from src.formatting import percent
 from src.provenance import computed_scf_row_source
 
 
 SHIFT_GROUP_ORDER = ["Bottom 50%", "Next 40%", "Next 9%", "Top 1%"]
 SHIFT_STATE_ORDER = ["Conventional net worth", "All modeled future resources"]
+AGE_SHIFT_BUCKETS = ["<25", "25-34", "35-44", "45-54", "55-64", "65+"]
 
 
 def build_distribution_shift_data(distribution: pd.DataFrame) -> pd.DataFrame:
@@ -99,10 +99,12 @@ def build_age_distribution_shift_data(data: pd.DataFrame) -> pd.DataFrame:
 
     working = data.copy()
     working["age_group"] = pd.Categorical(
-        working["age"].map(age_group), categories=AGE_BUCKETS, ordered=True
+        working["age"].map(lambda age: "65+" if age >= 65 else age_group(age)),
+        categories=AGE_SHIFT_BUCKETS,
+        ordered=True,
     )
     tables: list[pd.DataFrame] = []
-    for bucket in AGE_BUCKETS:
+    for bucket in AGE_SHIFT_BUCKETS:
         bucket_data = working.loc[working["age_group"] == bucket].copy()
         if bucket_data.empty:
             continue
@@ -119,7 +121,7 @@ def build_age_distribution_shift_data(data: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("age distribution data has no non-empty age buckets")
     result = pd.concat(tables, ignore_index=True)
     result["age_group"] = pd.Categorical(
-        result["age_group"], categories=AGE_BUCKETS, ordered=True
+        result["age_group"], categories=AGE_SHIFT_BUCKETS, ordered=True
     )
     return result.sort_values(["age_group", "group", "state"]).reset_index(drop=True)
 

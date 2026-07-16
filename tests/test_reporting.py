@@ -107,7 +107,7 @@ def test_age_distribution_shift_ranks_each_age_bucket_independently():
 
     result = build_age_distribution_shift_data(data)
 
-    assert result["age_group"].drop_duplicates().tolist() == ["25-34", "65-74"]
+    assert result["age_group"].drop_duplicates().tolist() == ["25-34", "65+"]
     assert set(result["state"]) == {
         "Conventional net worth",
         "All modeled future resources",
