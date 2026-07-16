@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import plotly.express as px
 import streamlit as st
 
 from src.app_data import load_comprehensive_report_data
+from src.charts import distribution_shift_figure
 from src.formatting import percent
 from src.real_data import aggregate_ranked_resource_distributions
+from src.reporting import build_distribution_shift_data
 from src.ui import methodology_expander, render_assumption_sidebar
 
 
@@ -26,6 +27,7 @@ data = load_comprehensive_report_data(
     payable_benefit_factor=assumptions["payable_benefit_factor"],
 )
 distribution = aggregate_ranked_resource_distributions(data)
+shift_data = build_distribution_shift_data(distribution)
 
 st.title("Conventional Wealth and Comprehensive Household Resources")
 st.caption(
@@ -40,25 +42,17 @@ st.markdown(
 )
 
 
-def share(measure: str, groups: list[str]) -> float:
-    selected = distribution[
-        (distribution["measure"] == measure) & distribution["rank_group"].isin(groups)
-    ]
-    return float(selected["wealth_share"].sum())
-
-
-top_groups = ["99-99.9%", "Top 0.1%"]
-bottom_groups = ["Bottom 50%", "50-90%"]
-columns = st.columns(3)
-columns[0].metric("Top 1% · conventional net worth", percent(share("conventional", top_groups)))
-columns[1].metric("Top 1% · Defensive accrued resources", percent(share("defensive", top_groups)))
-columns[2].metric("Top 1% · continuation resources", percent(share("continuation", top_groups)))
-columns = st.columns(3)
-columns[0].metric("Bottom 90% · conventional net worth", percent(share("conventional", bottom_groups)))
-columns[1].metric(
-    "Bottom 90% · Defensive accrued resources", percent(share("defensive", bottom_groups))
-)
-columns[2].metric("Bottom 90% · continuation resources", percent(share("continuation", bottom_groups)))
+comparison_rows = shift_data.drop_duplicates("group")
+with st.container(horizontal=True):
+    for row in comparison_rows.itertuples(index=False):
+        delta = f"{row.change_pp:+.1f} pp vs conventional".replace("-", "−")
+        st.metric(
+            str(row.group),
+            percent(float(row.future_resources_share)),
+            delta,
+            delta_color="off",
+            border=True,
+        )
 
 st.caption(
     f"Baseline: {assumptions['discount_rate']:.1%} real discount rate; "
@@ -66,30 +60,22 @@ st.caption(
     f"{assumptions['payable_benefit_factor']:.0%} Social Security payable factor."
 )
 
-chart_data = distribution.copy()
-chart_data["Measure"] = chart_data["measure"].map(
-    {
-        "conventional": "Conventional net worth",
-        "defensive": "Defensive accrued resources",
-        "continuation": "Continuation resources",
-    }
+st.subheader("How including future resources changes the distribution")
+st.markdown(
+    "The second bar adds **future labor earnings, Social Security, and defined-benefit pensions** "
+    "to conventional net worth. It is labeled *all modeled future resources* because these values "
+    "are estimates—not liquid or transferable assets."
 )
-figure = px.bar(
-    chart_data,
-    x="rank_group",
-    y="wealth_share",
-    color="Measure",
-    barmode="group",
-    labels={"rank_group": "Measure-specific weighted rank", "wealth_share": "Share"},
-    category_orders={
-        "rank_group": ["Bottom 50%", "50-90%", "90-99%", "99-99.9%", "Top 0.1%"]
-    },
+st.plotly_chart(
+    distribution_shift_figure(shift_data),
+    width="stretch",
+    config={"displayModeBar": False},
 )
-figure.update_yaxes(tickformat=".0%")
-st.plotly_chart(figure, width="stretch")
 st.caption(
-    "Source: Federal Reserve 2022 SCF summary and full public files; SSA 2019 period life table "
-    "published with the 2022 Trustees Report; model calculations in this repository."
+    "Each bar totals 100% and is independently ranked under its own measure. Percentage-point "
+    "changes compare rank-group shares, not the movement of the same households. Source: Federal "
+    "Reserve 2022 SCF summary and full public files; SSA mortality and 2022 program parameters; "
+    "model calculations in this repository."
 )
 
 with st.expander("Definitions, components, and exclusions"):
