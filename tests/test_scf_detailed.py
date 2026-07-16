@@ -67,7 +67,7 @@ def test_affirmative_inheritance_expectation_preserves_positive_amount(detailed_
     assert household.expected_inheritance_amount == pytest.approx(500_000)
 
 
-@pytest.mark.parametrize("response", [None, 0, 1.5, 2, 3])
+@pytest.mark.parametrize("response", [None, 0, 1.5, 2, 3, 5])
 def test_nonaffirmative_inheritance_response_creates_no_future_claim(
     detailed_scf_row, response
 ):
@@ -79,8 +79,22 @@ def test_nonaffirmative_inheritance_response_creates_no_future_claim(
 
 
 @pytest.mark.parametrize(
+    "amount",
+    [0, -1, None, float("nan"), float("inf"), float("-inf")],
+)
+def test_affirmative_inheritance_response_rejects_nonpositive_or_nonfinite_amounts(
+    detailed_scf_row, amount
+):
+    detailed_scf_row["x5821"] = amount
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.expected_inheritance_amount == 0
+
+
+@pytest.mark.parametrize(
     "estate_response, expected",
-    [(1, True), (None, False), (0, False), (1.5, False), (2, False)],
+    [(1, True), (None, False), (0, False), (1.5, False), (2, False), (5, False)],
 )
 def test_only_direct_sizable_estate_intent_sets_donor_flag(
     detailed_scf_row, estate_response, expected

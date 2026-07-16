@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Mapping
 from pathlib import Path
 from zipfile import ZipFile
@@ -104,8 +105,13 @@ def build_detailed_household_input(row: Mapping[str, object]) -> DetailedHouseho
 
     pensions = _future_db_pensions(values) + _current_db_pensions(values, respondent, spouse)
     expected_inheritance_amount = 0.0
-    if _number(values.get("x5819")) == 1:
-        expected_inheritance_amount = max(_number(values.get("x5821")), 0.0)
+    reported_inheritance_amount = _number(values.get("x5821"))
+    if (
+        _number(values.get("x5819")) == 1
+        and math.isfinite(reported_inheritance_amount)
+        and reported_inheritance_amount > 0
+    ):
+        expected_inheritance_amount = reported_inheritance_amount
 
     return DetailedHouseholdInput(
         row_id=row_id,
