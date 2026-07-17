@@ -1,28 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import math
+
 
 SOURCE_NOTE = (
     "Human capital is not marketable wealth. It is personal, risky, nontransferable, "
     "partly taxable, and highly sensitive to assumptions."
 )
 
-DEFAULT_ASSUMPTIONS = {
-    "discount_rate": 0.035,
-    "wage_growth": 0.015,
-    "retirement_age": 67,
-    "employment_probability": 0.95,
-    "tax_rate": 0.0,
-    "reentry_probability": 0.25,
-    "payable_benefit_factor": 0.80,
-    "income_security_floor_monthly": 622.0,
-    "inheritance_horizon_years": 15,
-}
-
 
 @dataclass(frozen=True)
 class ModelAssumptions:
+    """Canonical scenario controls for the comprehensive-resources model."""
+
     discount_rate: float = 0.035
     wage_growth: float = 0.015
     retirement_age: int = 67
@@ -61,3 +52,13 @@ class ModelAssumptions:
             or not 5 <= self.inheritance_horizon_years <= 30
         ):
             raise ValueError("inheritance_horizon_years must be an integer between 5 and 30")
+
+    def as_controls(self) -> dict[str, float | int]:
+        """Sidebar / cache-key dict (excludes internal version stamp)."""
+        values = asdict(self)
+        values.pop("version", None)
+        return values
+
+
+# Derived from ModelAssumptions so defaults cannot drift.
+DEFAULT_ASSUMPTIONS: dict[str, float | int] = ModelAssumptions().as_controls()

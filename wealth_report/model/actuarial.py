@@ -63,30 +63,3 @@ def present_value_stream(
             for offset, (payment, probability) in enumerate(zip(cash_flows, weights, strict=True))
         )
     )
-
-
-def survival_weighted_annuity(
-    annual_payment: float,
-    *,
-    current_age: int,
-    claiming_age: int,
-    lives_by_age: Mapping[int, float],
-    discount_rate: float,
-    max_age: int | None = None,
-) -> float:
-    """Value an annual life annuity with payments beginning at claiming age."""
-    if claiming_age < current_age:
-        claiming_age = current_age
-    final_age = max(lives_by_age) if max_age is None else min(max_age, max(lives_by_age))
-    if claiming_age > final_age:
-        return 0.0
-    survival = conditional_survival(lives_by_age, current_age, final_age)
-    first_offset = claiming_age - current_age
-    payment_count = final_age - claiming_age + 1
-    first_survival_index = max(first_offset, 1)
-    return present_value_stream(
-        [annual_payment] * payment_count,
-        discount_rate,
-        survival=survival[first_survival_index : first_survival_index + payment_count],
-        start_period=max(first_offset, 1),
-    )

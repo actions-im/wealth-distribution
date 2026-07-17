@@ -48,38 +48,6 @@ def weighted_median(values, weights):
     return float(weighted_quantile(values, weights, [0.5])[0])
 
 
-def weighted_mean(values, weights):
-    value_array, weight_array = _validated_arrays(values, weights)
-    return float(np.average(value_array, weights=weight_array))
-
-
-def assign_weighted_quantile_group(values, weights, groups):
-    value_array, weight_array = _validated_arrays(values, weights)
-    if not isinstance(groups, Sequence) or len(groups) == 0:
-        raise ValueError("groups must be a non-empty sequence")
-
-    order = np.argsort(value_array)
-    sorted_weights = weight_array[order]
-    cumulative_before = np.concatenate(([0.0], np.cumsum(sorted_weights)[:-1]))
-    percentile_positions = cumulative_before / sorted_weights.sum()
-
-    labels_sorted: list[str | None] = [None] * len(value_array)
-    for row_index, position in enumerate(percentile_positions):
-        for label, lower, upper in groups:
-            if lower <= position < upper or (upper == 1.0 and position <= 1.0 and lower <= position):
-                labels_sorted[row_index] = label
-                break
-
-    if any(label is None for label in labels_sorted):
-        raise ValueError("groups must cover the weighted percentile range from 0 to 1")
-
-    labels = [None] * len(value_array)
-    for sorted_index, original_index in enumerate(order):
-        labels[original_index] = labels_sorted[sorted_index]
-
-    return labels
-
-
 def weighted_rank_positions(values, weights, *, tie_breaker=None) -> np.ndarray:
     """Return cumulative-weight positions with deterministic ascending ties."""
     value_array, weight_array = _validated_arrays(values, weights)

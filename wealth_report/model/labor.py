@@ -1,31 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 from typing import Literal, Sequence
 
 from wealth_report.model.actuarial import present_value_stream
 
 LaborMode = Literal["defensive", "continuation"]
-
-
-@dataclass(frozen=True)
-class PersonLaborInput:
-    age: int
-    current_income: float
-    sex: str
-    reentry_income: float = 0.0
-    reentry_probability: float = 0.0
-
-
-@dataclass(frozen=True)
-class HouseholdLaborWealth:
-    respondent: float
-    spouse: float
-
-    @property
-    def total(self) -> float:
-        return self.respondent + self.spouse
 
 
 def _probability(value: float, name: str) -> float:
@@ -111,37 +91,3 @@ def estimate_labor_wealth(
         survival=survival_weights[:years],
         start_period=1,
     )
-
-
-def estimate_household_labor_wealth(
-    *,
-    respondent: PersonLaborInput,
-    spouse: PersonLaborInput | None,
-    survival_by_sex: dict[str, Sequence[float]],
-    retirement_age: int = 67,
-    employment_probability: float = 0.95,
-    wage_growth: float = 0.015,
-    discount_rate: float = 0.035,
-    tax_rate: float = 0.0,
-    mode: LaborMode = "continuation",
-) -> HouseholdLaborWealth:
-    def value(person: PersonLaborInput | None) -> float:
-        if person is None:
-            return 0.0
-        if person.sex not in survival_by_sex:
-            raise ValueError(f"missing survival curve for {person.sex}")
-        return estimate_labor_wealth(
-            current_income=person.current_income,
-            age=person.age,
-            retirement_age=retirement_age,
-            survival=survival_by_sex[person.sex],
-            reentry_income=person.reentry_income,
-            reentry_probability=person.reentry_probability,
-            employment_probability=employment_probability,
-            wage_growth=wage_growth,
-            discount_rate=discount_rate,
-            tax_rate=tax_rate,
-            mode=mode,
-        )
-
-    return HouseholdLaborWealth(respondent=value(respondent), spouse=value(spouse))

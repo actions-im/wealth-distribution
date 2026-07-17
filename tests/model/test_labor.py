@@ -1,11 +1,6 @@
 import pytest
 
-from wealth_report.model.labor import (
-    PersonLaborInput,
-    estimate_household_labor_wealth,
-    estimate_labor_wealth,
-    projected_labor_income_stream,
-)
+from wealth_report.model.labor import estimate_labor_wealth, projected_labor_income_stream
 
 
 def test_non_earner_can_reenter_employment():
@@ -21,17 +16,24 @@ def test_non_earner_can_reenter_employment():
     assert value > 0
 
 
-def test_household_labor_wealth_sums_people_after_separate_projection():
-    respondent = PersonLaborInput(age=64, current_income=50_000, sex="male")
-    spouse = PersonLaborInput(age=40, current_income=70_000, sex="female")
-    result = estimate_household_labor_wealth(
-        respondent=respondent,
-        spouse=spouse,
-        survival_by_sex={"male": [1] * 3, "female": [1] * 27},
+def test_household_labor_values_can_be_summed_from_person_projections():
+    respondent = estimate_labor_wealth(
+        current_income=50_000,
+        age=64,
+        retirement_age=67,
+        survival=[1] * 3,
     )
+    spouse = estimate_labor_wealth(
+        current_income=70_000,
+        age=40,
+        retirement_age=67,
+        survival=[1] * 27,
+    )
+    household_total = respondent + spouse
 
-    assert result.total == pytest.approx(result.respondent + result.spouse)
-    assert result.spouse > result.respondent
+    assert spouse > respondent
+    assert household_total > spouse
+    assert household_total > respondent
 
 
 def test_survival_weights_lower_labor_value():

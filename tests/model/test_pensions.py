@@ -1,7 +1,6 @@
 from wealth_report.model.pensions import (
     DefinedBenefitPlan,
     defined_benefit_wealth,
-    pension_components,
     defined_benefit_income_stream,
     value_defined_benefit_plan,
 )
@@ -17,15 +16,6 @@ def test_db_annuity_is_survival_weighted_from_claiming_age():
     )
 
     assert 0 < value < 24_000 * 40
-
-
-def test_account_type_pension_balance_is_not_added_again():
-    result = pension_components(
-        networth_includes_dc=True, dc_balance=100_000, db_wealth=250_000
-    )
-
-    assert result.incremental_pension_wealth == 250_000
-    assert result.excluded_account_balance == 100_000
 
 
 def test_accrued_db_applies_reported_or_explicit_accrual_fraction():
@@ -73,4 +63,9 @@ def test_survivor_fraction_is_disclosed_but_not_imputed_without_joint_curve():
 def test_db_income_stream_starts_at_claiming_age():
     plan = DefinedBenefitPlan(annual_benefit=12_000, current_age=64, claiming_age=66)
 
-    assert defined_benefit_income_stream(plan, mode="continuation", years=4) == [0, 12_000, 12_000, 12_000]
+    assert defined_benefit_income_stream(plan, mode="continuation", years=4) == [
+        0,
+        12_000,
+        12_000,
+        12_000,
+    ]

@@ -6,6 +6,12 @@ import math
 import pandas as pd
 
 from wealth_report.model.actuarial import conditional_survival
+from wealth_report.model.numeric import (
+    finite_float,
+    finite_nonnegative_or_zero,
+    finite_weighted_total,
+    require_finite_series,
+)
 
 
 _REQUIRED_COLUMNS = {
@@ -36,7 +42,7 @@ def discounted_inheritance_claim(amount: float, years: int, discount_rate: float
     Invalid, missing, or nonpositive SCF field values are treated as no claim.
     """
     rate = _validate_horizon_and_discount(horizon_years=years, discount_rate=discount_rate)
-    numeric_amount = _finite_nonnegative_or_zero(amount)
+    numeric_amount = finite_nonnegative_or_zero(amount)
     if numeric_amount == 0:
         return 0.0
     try:
@@ -72,7 +78,7 @@ def allocate_inheritance_reallocation(
 
     result = households.copy()
     weights = _validated_weights(result["household_weight"])
-    reported_amounts = result["expected_inheritance_amount"].map(_finite_nonnegative_or_zero)
+    reported_amounts = result["expected_inheritance_amount"].map(finite_nonnegative_or_zero)
     claims = reported_amounts.map(
         lambda amount: discounted_inheritance_claim(
             amount, years=horizon_years, discount_rate=rate
@@ -100,14 +106,14 @@ def allocate_inheritance_reallocation(
         dtype=float,
     )
 
-    reported_claim_total = _finite_weighted_total(
-        weights, reported_amounts, name="reported_claim_total"
+    reported_claim_total = finite_weighted_total(
+        weights.tolist(), reported_amounts.tolist(), name="reported_claim_total"
     )
-    discounted_claim_total = _finite_weighted_total(
-        weights, claims, name="discounted_claim_total"
+    discounted_claim_total = finite_weighted_total(
+        weights.tolist(), claims.tolist(), name="discounted_claim_total"
     )
-    donor_capacity_total = _finite_weighted_total(
-        weights, capacities, name="donor_capacity_total"
+    donor_capacity_total = finite_weighted_total(
+        weights.tolist(), capacities.tolist(), name="donor_capacity_total"
     )
     reallocated_total = min(discounted_claim_total, donor_capacity_total)
     recipient_scale = reallocated_total / discounted_claim_total if discounted_claim_total else 0.0
@@ -115,8 +121,8 @@ def allocate_inheritance_reallocation(
 
     credits = claims * recipient_scale
     reserves = capacities * donor_scale
-    _require_finite_series(credits, name="inheritance_credit")
-    _require_finite_series(reserves, name="estate_donor_reserve")
+    require_finite_series(credits, name="inheritance_credit")
+    require_finite_series(reserves, name="estate_donor_reserve")
     result["inheritance_claim"] = claims
     result["inheritance_credit"] = credits
     result["estate_donor_capacity"] = capacities
@@ -141,47 +147,17 @@ def _validate_horizon_and_discount(*, horizon_years: int, discount_rate: float) 
         or horizon_years <= 0
     ):
         raise ValueError("horizon_years must be a positive integer")
-    numeric_rate = _finite_float(discount_rate)
+    numeric_rate = finite_float(discount_rate)
     if numeric_rate is None or numeric_rate <= -1:
         raise ValueError("discount_rate must be finite and greater than -1")
     return numeric_rate
 
 
 def _validated_weights(values: pd.Series) -> pd.Series:
-    weights = values.map(_finite_float)
+    weights = values.map(finite_float)
     if weights.isna().any() or (weights < 0).any():
         raise ValueError("household_weight must be finite and nonnegative")
     return weights.astype(float)
-
-
-def _finite_float(value: object) -> float | None:
-    if isinstance(value, bool) or type(value).__name__ == "bool":
-        return None
-    try:
-        numeric = float(value)
-    except (TypeError, ValueError):
-        return None
-    return numeric if math.isfinite(numeric) else None
-
-
-def _finite_nonnegative_or_zero(value: object) -> float:
-    numeric = _finite_float(value)
-    return numeric if numeric is not None and numeric > 0 else 0.0
-
-
-def _finite_weighted_total(weights: pd.Series, values: pd.Series, *, name: str) -> float:
-    total = 0.0
-    for weight, value in zip(weights, values, strict=True):
-        contribution = weight * value
-        total += contribution
-        if not math.isfinite(contribution) or not math.isfinite(total):
-            raise ValueError(f"{name} must be finite")
-    return total
-
-
-def _require_finite_series(values: pd.Series, *, name: str) -> None:
-    if any(not math.isfinite(value) for value in values):
-        raise ValueError(f"{name} must be finite")
 
 
 def _estate_donor_capacity(
@@ -193,7 +169,7 @@ def _estate_donor_capacity(
     life_table: dict[str, dict[int, float]],
     horizon_years: int,
 ) -> float:
-    wealth = _finite_float(net_worth)
+    wealth = finite_float(net_worth)
     current_age = _valid_age(age)
     if (
         not isinstance(expects_sizable_estate, bool)
@@ -224,7 +200,7 @@ def _estate_donor_capacity(
 
 
 def _valid_age(value: object) -> int | None:
-    numeric = _finite_float(value)
+    numeric = finite_float(value)
     if numeric is None or numeric < 0 or not numeric.is_integer():
         return None
     return int(numeric)

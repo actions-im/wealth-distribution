@@ -6,8 +6,6 @@ import plotly.graph_objects as go
 from wealth_report.report.formatting import dollars_trillions
 
 
-MONEY_TICK = "$,.0f"
-
 SHIFT_COLORS = {
     "Bottom 50%": "#0F766E",
     "Next 40%": "#5FB3A9",

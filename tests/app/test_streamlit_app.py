@@ -43,10 +43,12 @@ def test_home_uses_two_state_distribution_shift():
 
 def test_home_uses_purpose_built_chart_helper():
     source = Path("wealth_report/app/pages/home.py").read_text()
+    bootstrap = Path("wealth_report/app/bootstrap.py").read_text()
 
     assert "distribution_shift_figure" in source
     assert "build_distribution_shift_data" in source
-    assert "validate_inheritance_reallocation_conservation(data)" in source
+    assert "load_page_report" in source
+    assert "validate_inheritance_reallocation_conservation" in bootstrap
     assert "px.bar" not in source
 
 
@@ -71,9 +73,10 @@ def test_age_distribution_shift_page_renders_six_within_age_views():
     assert "does not add or create national wealth" in visible_copy
     assert "newly created wealth" not in visible_copy.lower()
     assert "Negative conventional shares represent aggregate debt" in visible_copy
+    assert "load_page_report" in Path("wealth_report/app/pages/age_slicing.py").read_text()
     assert (
-        "validate_inheritance_reallocation_conservation(data)"
-        in Path("wealth_report/app/pages/age_slicing.py").read_text()
+        "validate_inheritance_reallocation_conservation"
+        in Path("wealth_report/app/bootstrap.py").read_text()
     )
 
 

@@ -29,13 +29,6 @@ class DefinedBenefitValue:
     exclusions: tuple[str, ...]
 
 
-@dataclass(frozen=True)
-class PensionComponents:
-    incremental_pension_wealth: float
-    excluded_account_balance: float
-    networth_includes_dc: bool
-
-
 def defined_benefit_wealth(
     *,
     annual_benefit: float,
@@ -129,19 +122,4 @@ def value_defined_benefit_plan(
         annual_benefit=benefit,
         excluded_account_balance=0.0,
         exclusions=tuple(exclusions),
-    )
-
-
-def pension_components(
-    *, networth_includes_dc: bool, dc_balance: float, db_wealth: float
-) -> PensionComponents:
-    """Return only pension wealth incremental to the supplied net-worth measure."""
-    if dc_balance < 0 or db_wealth < 0:
-        raise ValueError("pension component values cannot be negative")
-    incremental = db_wealth if networth_includes_dc else db_wealth + dc_balance
-    excluded = dc_balance if networth_includes_dc else 0.0
-    return PensionComponents(
-        incremental_pension_wealth=incremental,
-        excluded_account_balance=excluded,
-        networth_includes_dc=networth_includes_dc,
     )

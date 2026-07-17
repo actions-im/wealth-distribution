@@ -17,7 +17,7 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         "Discount rate",
         min_value=0.0,
         max_value=0.08,
-        value=DEFAULT_ASSUMPTIONS["discount_rate"],
+        value=float(DEFAULT_ASSUMPTIONS["discount_rate"]),
         step=0.0025,
         format="%.3f",
     )
@@ -25,31 +25,42 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         "Real wage growth",
         min_value=-0.01,
         max_value=0.04,
-        value=DEFAULT_ASSUMPTIONS["wage_growth"],
+        value=float(DEFAULT_ASSUMPTIONS["wage_growth"]),
         step=0.0025,
         format="%.3f",
     )
-    retirement_age = st.sidebar.slider("Retirement age", 55, 75, DEFAULT_ASSUMPTIONS["retirement_age"])
+    retirement_age = st.sidebar.slider(
+        "Retirement age",
+        55,
+        75,
+        int(DEFAULT_ASSUMPTIONS["retirement_age"]),
+    )
     employment_probability = st.sidebar.slider(
         "Employment probability",
         min_value=0.5,
         max_value=1.0,
-        value=DEFAULT_ASSUMPTIONS["employment_probability"],
+        value=float(DEFAULT_ASSUMPTIONS["employment_probability"]),
         step=0.01,
     )
-    tax_rate = st.sidebar.slider("Flat tax haircut", 0.0, 0.5, DEFAULT_ASSUMPTIONS["tax_rate"], step=0.01)
+    tax_rate = st.sidebar.slider(
+        "Flat tax haircut",
+        0.0,
+        0.5,
+        float(DEFAULT_ASSUMPTIONS["tax_rate"]),
+        step=0.01,
+    )
     reentry_probability = st.sidebar.slider(
         "Non-earner re-entry probability",
         0.0,
         1.0,
-        DEFAULT_ASSUMPTIONS["reentry_probability"],
+        float(DEFAULT_ASSUMPTIONS["reentry_probability"]),
         step=0.05,
     )
     payable_benefit_factor = st.sidebar.slider(
         "Social Security payable factor",
         0.0,
         1.0,
-        DEFAULT_ASSUMPTIONS["payable_benefit_factor"],
+        float(DEFAULT_ASSUMPTIONS["payable_benefit_factor"]),
         step=0.05,
     )
     income_security_floor_monthly = st.sidebar.slider(
@@ -68,7 +79,7 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         "Expected inheritance horizon (years)",
         min_value=5,
         max_value=30,
-        value=DEFAULT_ASSUMPTIONS["inheritance_horizon_years"],
+        value=int(DEFAULT_ASSUMPTIONS["inheritance_horizon_years"]),
         step=1,
         help=(
             "Timing scenario for discounting expected inheritances; it is not observed parent-child timing."
@@ -86,6 +97,8 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         "income_security_floor_monthly": income_security_floor_monthly,
         "inheritance_horizon_years": inheritance_horizon_years,
     }
+
+
 def methodology_expander() -> None:
     with st.expander("Methodology and limits"):
         st.write(

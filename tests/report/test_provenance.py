@@ -5,27 +5,12 @@ import pandas as pd
 from wealth_report.report import provenance
 from wealth_report.model.assumptions import DEFAULT_ASSUMPTIONS
 from wealth_report.report.provenance import (
-    ASSUMPTION_SOURCE,
     COMPUTED_SCF_SOURCE,
     build_component_methodology_table,
-    build_number_source_table,
     build_shift_number_audit,
     chart_source_caption,
 )
-from wealth_report.report.builder import SCF_2022_DATASET_LABEL
 from wealth_report.report.distribution import AGE_SHIFT_BUCKETS
-
-
-
-def test_number_source_table_maps_calculated_and_assumption_numbers():
-    source_table = build_number_source_table(DEFAULT_ASSUMPTIONS)
-
-    assert {"Number category", "Source", "Method"}.issubset(source_table.columns)
-    assert any(source_table["Source"].str.contains(SCF_2022_DATASET_LABEL))
-    assert any(source_table["Source"].str.contains(ASSUMPTION_SOURCE))
-    assert any(source_table["Method"].str.contains("discount_rate"))
-    assert any(source_table["Number category"].str.contains("Income-security floor"))
-    assert any(source_table["Method"].str.contains("622"))
 
 
 def test_chart_source_caption_identifies_computed_scf_source():
@@ -41,7 +26,6 @@ def test_comprehensive_provenance_matches_detailed_wage_and_benefit_rules():
     )
     labor = methodology.loc["Future labor earnings"]
     social_security = methodology.loc["Social Security"]
-    source_table = build_number_source_table(DEFAULT_ASSUMPTIONS)
 
     assert "Full SCF p22i6.dta" in COMPUTED_SCF_SOURCE
     assert "X4110" in labor["Source fields"]
@@ -53,15 +37,8 @@ def test_comprehensive_provenance_matches_detailed_wage_and_benefit_rules():
     assert "X5309" in social_security["Source fields"]
     assert "SSI" in social_security["Important treatment"]
     assert "disability" in social_security["Important treatment"]
-    assert not source_table["Number category"].str.contains(
-        "Human-capital liquidity weight"
-    ).any()
-    earnings_method = source_table.loc[
-        source_table["Number category"] == "Discounted future earnings dollars and shares",
-        "Method",
-    ].iloc[0]
-    assert "wageinc" not in earnings_method
-    assert "detailed wage" in earnings_method
+    assert "wageinc" not in labor["Source fields"].lower()
+    assert "discount" in labor["Current assumptions"]
 
     audit = build_shift_number_audit(_shift_data(), DEFAULT_ASSUMPTIONS)
     modeled_sources = audit.loc[
@@ -101,9 +78,7 @@ def test_inheritance_reallocation_provenance_discloses_conserved_allocator():
     assert future_rows["Source fields"].str.contains(
         "Summary SCF rscfp2022.dta: NETWORTH, WGT"
     ).all()
-    assert future_rows["Source fields"].str.contains(
-        "Full SCF p22i6.dta"
-    ).all()
+    assert future_rows["Source fields"].str.contains("Full SCF p22i6.dta").all()
     assert future_rows["Source keys"].str.contains(
         "scf_summary; scf_full; ssa_period_life_2019_tr2022"
     ).all()
@@ -146,19 +121,10 @@ def test_long_form_docs_disclose_inheritance_reallocation_limits():
     assert "reported x5821" not in inheritance_copy
     assert "reported amount" not in inheritance_copy
 
-    source_method = build_number_source_table(DEFAULT_ASSUMPTIONS).loc[
-        lambda table: table["Number category"] == "Expected-inheritance reallocation",
-        "Method",
-    ].iloc[0].lower()
-    assert (
-        "scf expectation field values, including scf imputation where applicable"
-        in source_method
-    )
-
     for public_artifact in (
-            "wealth_report/model/inheritance.py",
-        "docs/plans/2026-07-15-inheritance-reallocation-design.md",
-        "docs/plans/2026-07-15-inheritance-reallocation-implementation.md",
+        "wealth_report/model/inheritance.py",
+        "docs/methodology.md",
+        "README.md",
     ):
         artifact_copy = Path(public_artifact).read_text().lower()
         assert "reported expectation" not in artifact_copy

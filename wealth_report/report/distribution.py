@@ -4,6 +4,15 @@ import math
 
 import pandas as pd
 
+from wealth_report.model.numeric import finite_float, finite_weighted_total, is_boolean_scalar
+from wealth_report.report.ranking import (
+    DISPLAY_GROUP_LABELS,
+    age_group,
+    aggregate_ranked_resource_distributions,
+)
+
+# Four-bar Home / Age chart order. Labels come from DISPLAY_GROUP_LABELS
+# (five analysis quantiles collapse into these four display groups).
 SHIFT_GROUP_ORDER = ["Bottom 50%", "Next 40%", "Next 9%", "Top 1%"]
 SHIFT_STATE_ORDER = ["Conventional net worth", "All modeled future resources"]
 AGE_SHIFT_BUCKETS = ["<25", "25-34", "35-44", "45-54", "55-64", "65+"]
@@ -39,15 +48,17 @@ def validate_inheritance_reallocation_conservation(data: pd.DataFrame) -> float:
         for column in required
     }
     weights = values["household_weight"]
-    weighted_credits = _finite_weighted_total(
+    weighted_credits = finite_weighted_total(
         weights,
         values["continuation_expected_inheritance"],
         name="weighted credits",
+        use_fsum=True,
     )
-    weighted_reserves = _finite_weighted_total(
+    weighted_reserves = finite_weighted_total(
         weights,
         values["continuation_estate_donor_reserve"],
         name="weighted donor reserves",
+        use_fsum=True,
     )
     imbalance = weighted_credits - weighted_reserves
     if not math.isclose(
@@ -67,33 +78,15 @@ def validate_inheritance_reallocation_conservation(data: pd.DataFrame) -> float:
 def _finite_numeric_values(values: pd.Series, *, column: str) -> list[float]:
     numeric_values: list[float] = []
     for value in values:
-        if isinstance(value, bool) or type(value).__name__ == "bool":
+        if is_boolean_scalar(value):
             raise ValueError(f"{column} must be finite and numeric")
-        try:
-            numeric = float(value)
-        except (TypeError, ValueError) as error:
-            raise ValueError(f"{column} must be finite and numeric") from error
-        if not math.isfinite(numeric):
+        numeric = finite_float(value)
+        if numeric is None:
             raise ValueError(f"{column} must be finite and numeric")
         if numeric < 0:
             raise ValueError(f"{column} must be nonnegative")
         numeric_values.append(numeric)
     return numeric_values
-
-
-def _finite_weighted_total(
-    weights: list[float], values: list[float], *, name: str
-) -> float:
-    contributions: list[float] = []
-    for weight, value in zip(weights, values, strict=True):
-        contribution = weight * value
-        if not math.isfinite(contribution):
-            raise ValueError(f"{name} must be finite")
-        contributions.append(contribution)
-    total = math.fsum(contributions)
-    if not math.isfinite(total):
-        raise ValueError(f"{name} must be finite")
-    return total
 
 
 def build_distribution_shift_data(distribution: pd.DataFrame) -> pd.DataFrame:
@@ -109,13 +102,6 @@ def build_distribution_shift_data(distribution: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(f"distribution shift data is missing columns: {sorted(missing)}")
 
-    group_labels = {
-        "Bottom 50%": "Bottom 50%",
-        "50-90%": "Next 40%",
-        "90-99%": "Next 9%",
-        "99-99.9%": "Top 1%",
-        "Top 0.1%": "Top 1%",
-    }
     state_labels = {
         "conventional": "Conventional net worth",
         "continuation": "All modeled future resources",
@@ -123,7 +109,7 @@ def build_distribution_shift_data(distribution: pd.DataFrame) -> pd.DataFrame:
     working = distribution.loc[distribution["measure"].isin(state_labels)].copy()
     if set(working["measure"]) != set(state_labels):
         raise ValueError("distribution shift requires conventional and continuation measures")
-    working["group"] = working["rank_group"].map(group_labels)
+    working["group"] = working["rank_group"].map(DISPLAY_GROUP_LABELS)
     if working["group"].isna().any():
         unsupported = sorted(working.loc[working["group"].isna(), "rank_group"].unique())
         raise ValueError(f"unsupported rank groups: {unsupported}")
@@ -177,11 +163,6 @@ def build_age_distribution_shift_data(data: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(f"age distribution data is missing columns: {sorted(missing)}")
 
-    from wealth_report.report.builder import (
-        age_group,
-        aggregate_ranked_resource_distributions,
-    )
-
     working = data.copy()
     working["age_group"] = pd.Categorical(
         working["age"].map(lambda age: "65+" if age >= 65 else age_group(age)),
@@ -211,23 +192,3 @@ def build_age_distribution_shift_data(data: pd.DataFrame) -> pd.DataFrame:
     return result.sort_values(["age_group", "group", "state"]).reset_index(drop=True)
 
 
-def build_fixed_rank_decomposition(
-    data: pd.DataFrame,
-    *,
-    group_column: str,
-    component_columns: list[str],
-) -> pd.DataFrame:
-    """Aggregate components without re-ranking away from conventional net worth."""
-    required = {group_column, "household_weight", *component_columns}
-    missing = required - set(data.columns)
-    if missing:
-        raise ValueError(f"fixed-rank decomposition is missing columns: {sorted(missing)}")
-    working = data.copy()
-    for column in component_columns:
-        working[column] = working[column] * working["household_weight"]
-    table = working.groupby(group_column, observed=False, sort=False)[component_columns].sum()
-    table.attrs["definition"] = (
-        "Component decomposition at fixed conventional-net-worth rank; this is not a "
-        "metric-specific distribution."
-    )
-    return table.reset_index()

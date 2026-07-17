@@ -16,8 +16,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REGISTRY_PATH = PROJECT_ROOT / "data" / "sources.json"
 
 SCF_2022_EXTRACT_ZIP_URL = "https://www.federalreserve.gov/econres/files/scfp2022s.zip"
-FED_EXPECTED_FUTURE_INCOME_URL = "https://www.federalreserve.gov/pubs/ifdp/2009/971/ifdp971.htm"
-FED_HUMAN_WEALTH_MODEL_URL = "https://www.federalreserve.gov/pubs/feds/2010/201056/index.html"
 
 
 class SourceIntegrityError(ValueError):
@@ -105,9 +103,3 @@ def download_artifact(
             raise
 
     return destination, build_artifact_record(spec, destination, headers=dict(response.headers))
-
-
-def write_manifest(records: list[dict[str, Any]], path: Path) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"artifacts": records}, indent=2, sort_keys=True) + "\n")
-    return path

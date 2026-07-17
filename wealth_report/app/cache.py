@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from wealth_report.model.assumptions import ModelAssumptions
-from wealth_report.report.builder import load_comprehensive_household_data
+from wealth_report.report.pipeline import load_comprehensive_household_data
 
 
 @st.cache_data(
@@ -22,6 +22,7 @@ def load_comprehensive_report_data(
     income_security_floor_monthly: float,
     inheritance_horizon_years: int,
 ) -> pd.DataFrame:
+    """Cache key is the full assumption vector (call with ``**assumptions``)."""
     assumptions = ModelAssumptions(
         discount_rate=discount_rate,
         wage_growth=wage_growth,

@@ -5,26 +5,7 @@ from wealth_report.report.distribution import (
     validate_inheritance_reallocation_conservation,
     build_age_distribution_shift_data,
     build_distribution_shift_data,
-    build_fixed_rank_decomposition,
 )
-
-
-def test_fixed_rank_view_is_labeled_as_decomposition():
-    data = pd.DataFrame(
-        {
-            "conventional_rank_group": ["Bottom 90%", "Top 10%"],
-            "household_weight": [9, 1],
-            "net_worth": [10, 100],
-            "accrued_labor": [50, 1],
-        }
-    )
-    table = build_fixed_rank_decomposition(
-        data,
-        group_column="conventional_rank_group",
-        component_columns=["net_worth", "accrued_labor"],
-    )
-
-    assert "conventional-net-worth rank" in table.attrs["definition"]
 
 
 def test_distribution_shift_collapses_to_four_groups_and_two_states():
