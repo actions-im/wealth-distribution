@@ -17,6 +17,7 @@ class SocialSecurityPerson:
     career_years: int
     annual_reported_benefit: float = 0.0
     claiming_age: int = 67
+    reported_benefit_type: str = "retirement"
 
 
 @dataclass(frozen=True)
@@ -86,7 +87,15 @@ def social_security_wealth(
     credited_years = min(person.career_years + added_years, 35)
     covered_wage = min(person.annual_wage, parameters.taxable_maximum)
 
-    used_reported_benefit = person.annual_reported_benefit > 0
+    exclusions = ["spousal_and_survivor_benefits"]
+    used_reported_benefit = (
+        person.annual_reported_benefit > 0
+        and person.reported_benefit_type == "retirement"
+    )
+    if person.annual_reported_benefit > 0 and not used_reported_benefit:
+        exclusions.append(
+            f"reported_{person.reported_benefit_type}_benefit_excluded"
+        )
     if used_reported_benefit:
         annual_benefit = person.annual_reported_benefit
     else:
@@ -125,6 +134,7 @@ def social_security_wealth(
         annual_scheduled_benefit=annual_benefit,
         credited_years=credited_years,
         used_reported_benefit=used_reported_benefit,
+        exclusions=tuple(exclusions),
     )
 
 
@@ -145,7 +155,7 @@ def social_security_income_stream(
         payable_factor=payable_factor,
         retirement_age=retirement_age,
     )
-    if person.annual_reported_benefit > 0:
+    if result.used_reported_benefit:
         start = 0
     else:
         start = max(max(person.claiming_age, person.age) - person.age, 1) - 1

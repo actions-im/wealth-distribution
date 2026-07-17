@@ -46,6 +46,35 @@ st.caption(
     "inputs are separated from model-derived estimates."
 )
 
+st.subheader("Research question: economic value, not just balance-sheet ownership")
+st.write(
+    "The report addresses a specific mismatch in public uses of ‘wealth inequality.’ Conventional net worth is "
+    "a valid current-ownership accounting measure: it records estimated values of currently owned assets less "
+    "liabilities. It is incomplete when used as a measure of total economic value held by the population. Market "
+    "values of equity, real estate, and private businesses embed estimated future cash flows, risk, and discounting, "
+    "while major expected cash flows held outside the balance sheet are generally recorded at zero."
+)
+st.write(
+    "The report therefore compares two estimands, not two versions of the same accounting identity. Conventional "
+    "net worth measures current legal ownership. All modeled future resources is a broader, explicitly bounded "
+    "estimate of lifetime economic resources that values expected labor earnings, scheduled Social Security benefits "
+    "net of modeled employee contributions, defined-benefit pension payments, an income-security scenario, and a "
+    "constrained expected-inheritance reallocation. Differences in legal status, certainty, liquidity, and "
+    "transferability are explicit valuation and limitation questions; they are not an automatic zero value."
+)
+
+st.subheader("Data basis")
+st.info(
+    "The Federal Reserve’s 2022 Survey of Consumer Finances public files used here contain **4,595 surveyed SCF "
+    "families** represented in **five multiple-imputation implicates** (**22,975 record rows**). The report applies "
+    "the supplied SCF family weight **WGT** to produce weighted family totals—not person counts. It combines the "
+    "summary file’s NETWORTH and WGT with the detailed file’s respondent/spouse demographics, wage amount, pay "
+    "frequency, work schedules, reported Social Security payment and type, defined-benefit pension fields, "
+    "inheritance expectations, and estate intent. SSA mortality and 2022 program parameters value life-contingent "
+    "cash flows; Federal Reserve Financial Accounts data provide the defined-benefit pension benchmark.",
+    icon=":material/dataset:",
+)
+
 st.subheader("Scope, weighting, and ranking")
 st.write(
     "The observation is an SCF family. Monetary values are 2022 dollars, and the SCF family weight "
@@ -84,8 +113,8 @@ st.caption(
 
 st.subheader("Home distribution audit")
 st.write(
-    "This table covers every Home chart value: resource shares printed in the bars, weighted totals and "
-    "family shares shown on hover, and each percentage-point change."
+    "This table covers every Home chart value: resource shares and static bar labels, weighted totals and "
+    "family shares in this audit, and each percentage-point change."
 )
 
 
@@ -211,7 +240,8 @@ st.info(
 st.subheader("Exclusions and limitations")
 st.warning(
     "Future earnings are personal, risky, nontransferable, and illiquid. The public model excludes "
-    "unsupported Social Security spousal/survivor benefits, DB survivor annuities without joint-life "
+    "unsupported Social Security spousal/survivor benefits and does not treat reported SSI, disability, "
+    "survivor/dependent, or unclassified payments as retired-worker benefits. It also excludes DB survivor annuities without joint-life "
     "inputs, and mixed business income that could double count returns already embedded in business equity. "
     "Zero-wage working-age adults receive a peer-based re-entry wage imputation times the visible re-entry "
     "probability; this is a scenario assumption, not observed earnings. Headline values are point estimates; "
@@ -255,10 +285,12 @@ st.caption(
 
 st.subheader("Reproduction")
 st.code(
-    "uv run python scripts/reproduce_report.py --fixture --output-dir build/report",
+    "uv run python scripts/reproduce_report.py --real-data --output-dir build/report",
     language="bash",
 )
 st.caption(
-    "The fixture validates code paths and output contracts. The Streamlit report loads pinned real SCF "
-    "inputs for point estimates."
+    "This command loads the same pinned SCF inputs and baseline assumptions as the report, then writes the "
+    "four-group headline comparison, age-panel data, component totals, full rank detail, reconciliation, "
+    "scenario controls, source hashes with integrity status, and Git revision. For a fast code-path contract "
+    "check, use --fixture instead."
 )

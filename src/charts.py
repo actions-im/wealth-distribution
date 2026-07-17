@@ -25,7 +25,7 @@ SHIFT_STATES = ["Conventional net worth", "All modeled future resources"]
 
 
 def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
-    """Show two independently ranked resource distributions as paired 100% bars."""
+    """Show two independently ranked resource distributions as paired signed bars."""
     required = {
         "group",
         "state",
@@ -49,6 +49,7 @@ def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
                 raise ValueError(f"expected one row for {state} / {group}, found {len(selected)}")
             row = selected.iloc[0]
             share = float(row["share"])
+            is_negative = share < 0
             figure.add_bar(
                 x=[share],
                 y=[state],
@@ -58,16 +59,21 @@ def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
                 showlegend=state == SHIFT_STATES[0],
                 marker={"color": color, "line": {"color": "#FFFFFF", "width": 1.5}},
                 text=[
-                    f"{share:.1%} [{dollars_trillions(float(row['weighted_total']))}]"
-                    if share >= 0.055
+                    _share_label(share, float(row["weighted_total"]))
+                    if share < 0 or share >= 0.055
                     else ""
                 ],
-                textposition="inside",
+                textposition="outside" if is_negative else "inside",
                 insidetextanchor="middle",
-                textfont={"color": SHIFT_TEXT_COLORS[group], "size": 12},
+                textfont={
+                    "color": "#172121" if is_negative else SHIFT_TEXT_COLORS[group],
+                    "size": 12,
+                },
+                cliponaxis=False,
                 hoverinfo="skip",
             )
 
+    xaxis_range = _signed_share_axis_range(data)
     figure.update_layout(
         barmode="stack",
         barnorm=None,
@@ -86,11 +92,13 @@ def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
             "title": {"text": ""},
         },
         xaxis={
-            "range": [0, 1],
+            "range": xaxis_range,
             "tickformat": ".0%",
             "dtick": 0.25,
             "showgrid": False,
-            "zeroline": False,
+            "zeroline": xaxis_range[0] < 0,
+            "zerolinecolor": "#64748B",
+            "zerolinewidth": 1,
             "title": None,
             "fixedrange": True,
         },
@@ -102,9 +110,43 @@ def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
             "tickfont": {"size": 15},
             "fixedrange": True,
         },
-        uniformtext={"minsize": 12, "mode": "hide"},
+        uniformtext={"minsize": 12, "mode": "show"},
     )
     return figure
+
+
+def _share_label(share: float, weighted_total: float) -> str:
+    dollars = (
+        _compact_dollars(weighted_total)
+        if weighted_total < 0
+        else dollars_trillions(weighted_total)
+    )
+    return f"{_signed_percent(share)} [{dollars}]"
+
+
+def _signed_percent(value: float) -> str:
+    return f"{value:.1%}".replace("-", "−")
+
+
+def _compact_dollars(value: float) -> str:
+    sign = "−" if value < 0 else ""
+    absolute_value = abs(value)
+    if absolute_value < 1_000_000_000_000:
+        return f"{sign}${absolute_value / 1_000_000_000:,.1f}B"
+    return f"{sign}{dollars_trillions(absolute_value)}"
+
+
+def _signed_share_axis_range(data: pd.DataFrame) -> list[float]:
+    totals = data.groupby("state", observed=True)["share"].agg(
+        negative=lambda values: values[values < 0].sum(),
+        positive=lambda values: values[values > 0].sum(),
+    )
+    lower = float(min(0.0, totals["negative"].min()))
+    upper = float(max(1.0, totals["positive"].max()))
+    if lower == 0:
+        return [0.0, 1.0]
+    padding = max(0.02, abs(lower) * 0.15)
+    return [lower - padding, upper + padding]
 
 
 def color_for_change(change_pp: float) -> str:

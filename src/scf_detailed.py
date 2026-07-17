@@ -23,8 +23,10 @@ FREQUENCY_MULTIPLIERS = {
 }
 
 DETAILED_COLUMNS = [
-    "y1", "yy1", "x14", "x19", "x8021", "x103", "x4112", "x4113", "x4712", "x4713",
-    "x5306", "x5307", "x5311", "x5312",
+    "y1", "yy1", "x14", "x19", "x8021", "x103",
+    "x4110", "x4111", "x4112", "x4113",
+    "x4710", "x4711", "x4712", "x4713",
+    "x5304", "x5306", "x5307", "x5309", "x5311", "x5312",
     "x5603", "x5606", "x5607", "x5608", "x5609",
     "x5611", "x5614", "x5615", "x5616", "x5617",
     "x5619", "x5622", "x5623", "x5624", "x5625",
@@ -52,6 +54,7 @@ class PersonInput:
     sex: str
     annual_wage: float
     annual_social_security: float
+    social_security_benefit_type: str = "none"
 
 
 @dataclass(frozen=True)
@@ -83,6 +86,37 @@ def annualize(amount: object, frequency: object) -> float:
     return float(numeric_amount * multiplier) if multiplier else 0.0
 
 
+def annualize_wage(
+    amount: object,
+    frequency: object,
+    hours_per_week: object,
+    weeks_per_year: object,
+) -> float:
+    """Annualize a main-job wage using the SCF's documented work schedule fields."""
+    numeric_amount = _number(amount)
+    numeric_frequency = int(_number(frequency))
+    if numeric_amount <= 0:
+        return 0.0
+
+    weeks = _number(weeks_per_year)
+    if numeric_frequency == 18:  # Hour
+        return float(numeric_amount * _number(hours_per_week) * weeks)
+    if numeric_frequency == 31:  # Twice a month
+        return float(numeric_amount * 24.0)
+    if numeric_frequency == 1:  # Day; SCF does not collect days per week.
+        return float(numeric_amount * 5.0 * weeks) if weeks > 0 else 0.0
+    if numeric_frequency == 2:  # Week
+        return float(numeric_amount * weeks) if weeks > 0 else 0.0
+    if numeric_frequency == 3:  # Every two weeks
+        return float(numeric_amount * weeks / 2.0) if weeks > 0 else 0.0
+    if numeric_frequency == 8:  # One payment for the whole year
+        return float(numeric_amount)
+    if numeric_frequency == 21:  # Three times a year
+        return float(numeric_amount * 3.0)
+    multiplier = FREQUENCY_MULTIPLIERS.get(numeric_frequency)
+    return float(numeric_amount * multiplier) if multiplier else 0.0
+
+
 def build_detailed_household_input(row: Mapping[str, object]) -> DetailedHouseholdInput:
     values = {str(key).lower(): value for key, value in row.items()}
     row_id = int(_number(values.get("y1")))
@@ -92,8 +126,14 @@ def build_detailed_household_input(row: Mapping[str, object]) -> DetailedHouseho
     respondent = PersonInput(
         age=int(_number(values.get("x14"))),
         sex=_sex(values.get("x8021")),
-        annual_wage=annualize(values.get("x4112"), values.get("x4113")),
+        annual_wage=annualize_wage(
+            values.get("x4112"),
+            values.get("x4113"),
+            values.get("x4110"),
+            values.get("x4111"),
+        ),
         annual_social_security=annualize(values.get("x5306"), values.get("x5307")),
+        social_security_benefit_type=_social_security_benefit_type(values.get("x5304")),
     )
     spouse_age = int(_number(values.get("x19")))
     spouse = None
@@ -101,8 +141,14 @@ def build_detailed_household_input(row: Mapping[str, object]) -> DetailedHouseho
         spouse = PersonInput(
             age=spouse_age,
             sex=_sex(values.get("x103")),
-            annual_wage=annualize(values.get("x4712"), values.get("x4713")),
+            annual_wage=annualize_wage(
+                values.get("x4712"),
+                values.get("x4713"),
+                values.get("x4710"),
+                values.get("x4711"),
+            ),
             annual_social_security=annualize(values.get("x5311"), values.get("x5312")),
+            social_security_benefit_type=_social_security_benefit_type(values.get("x5309")),
         )
 
     pensions = _future_db_pensions(values) + _current_db_pensions(values, respondent, spouse)
@@ -208,6 +254,17 @@ def _is_boolean_scalar(value: object) -> bool:
 
 def _sex(value: object) -> str:
     return {1: "male", 2: "female"}.get(int(_number(value)), "unknown")
+
+
+def _social_security_benefit_type(value: object) -> str:
+    return {
+        1: "retirement",
+        2: "disability",
+        3: "survivor_or_dependent",
+        6: "survivor_or_dependent",
+        7: "ssi",
+        8: "ssi",
+    }.get(int(_number(value)), "none")
 
 
 def _owner(value: object) -> str:

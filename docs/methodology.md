@@ -24,7 +24,7 @@ Conventional net worth is the SCF summary variable `NETWORTH`: assets minus liab
 
 ### Labor resources
 
-Respondent and spouse wage income are projected separately from the detailed SCF file. For person `i`, the continuation value is:
+Respondent and spouse wage income are projected separately from the detailed SCF file. Wage amounts are annualized from each respondent's reported payment frequency; hourly, daily, weekly, and biweekly reports use the corresponding detailed-file hours and weeks worked where applicable. For person `i`, the continuation value is:
 
 ```text
 PV labor_i = sum from t=1 to retirement(
@@ -39,7 +39,7 @@ The first payment is one year after the survey. The defensive case assumes zero 
 
 ### Social Security
 
-Current recipients use separately reported SCF Social Security benefits. Other adults use an earnings-history proxy because the public SCF lacks SSA administrative earnings records. The proxy applies modeled credited years and the 2022 PIA formula:
+Only separately reported SCF retired-worker payments are used as current Social Security benefits. Reported SSI, disability, survivor/dependent, and unclassified payments are not silently treated as retired-worker income; unsupported spousal and survivor benefits are not imputed. Other adults use an earnings-history proxy because the public SCF lacks SSA administrative earnings records. The proxy applies modeled credited years and the 2022 PIA formula:
 
 ```text
 PIA = 90% of AIME through $1,024
@@ -95,7 +95,7 @@ The public SCF does not link recipient to donor families, so this is not a predi
 ## Exclusions
 
 - Defined-contribution and account-type balances already present in `NETWORTH` are excluded from incremental pension wealth.
-- Social Security spousal and survivor benefits are not imputed from insufficient public inputs.
+- Social Security spousal and survivor benefits are not imputed from insufficient public inputs; reported SSI, disability, survivor/dependent, and unclassified payments are not used as retired-worker benefits.
 - DB survivor annuities are excluded when a defensible joint-life curve is unavailable.
 - Mixed self-employment and business income is not added wholesale.
 - Child benefits, state and local programs, asset tests, and program-specific eligibility are not modeled in the income-security scenario.
@@ -151,7 +151,7 @@ Downloads are hash-verified where deterministic artifacts are available. Generat
 ## Reproduction
 
 ```bash
-uv run python scripts/reproduce_report.py --fixture --output-dir build/report
+uv run python scripts/reproduce_report.py --real-data --output-dir build/report
 ```
 
-This emits `headline.csv`, `detail.csv`, `sensitivity.csv`, and `manifest.json`. The fixture validates code paths and contracts; it is not empirical evidence. The Streamlit app loads pinned real SCF files for displayed point estimates.
+This emits the four-group `headline.csv`, `age_distribution.csv`, `component_totals.csv`, full-rank `detail.csv`, `top_shares.csv`, `reconciliation.csv`, `scenario_controls.csv`, and `manifest.json`. The manifest records active sources, local hashes, integrity status, baseline assumptions, exclusions, and Git revision. Use `--fixture` only for a fast output-contract check; it is not empirical evidence.

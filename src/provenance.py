@@ -9,7 +9,16 @@ from src.real_data import SCF_2022_DATASET_LABEL
 ASSUMPTION_SOURCE = "User-adjustable model assumption shown in the sidebar"
 DEFINITION_SOURCE = "Report definition"
 COMPUTED_SCF_SOURCE = (
-    "Computed from Federal Reserve 2022 SCF public summary extract fields networth, wageinc, age, and wgt"
+    "Computed from Federal Reserve 2022 SCF public summary extract NETWORTH and WGT, and Full "
+    "SCF p22i6.dta respondent/spouse demographic, wage, Social Security, pension, and inheritance fields"
+)
+
+FULL_MODEL_SOURCE_FIELDS = (
+    "Summary SCF rscfp2022.dta: NETWORTH, WGT; Full SCF p22i6.dta: respondent/spouse "
+    "demographics; wage amount, frequency, hours, and weeks (X4110–X4113; X4710–X4713); "
+    "current Social Security payment, frequency, and benefit type (X5304, X5306, X5307, X5309, "
+    "X5311, X5312); DB pension fields; and inheritance fields X5819, X5821, X5825; SSA mortality "
+    "and 2022 program parameters; SSI average-payment benchmark"
 )
 
 
@@ -39,10 +48,7 @@ def build_shift_number_audit(
             "Summary SCF rscfp2022.dta: NETWORTH, WGT"
             if is_conventional
             else (
-                "Summary SCF rscfp2022.dta: NETWORTH, WGT; Full SCF p22i6.dta: X5819, X5821, X5825, "
-                "respondent/spouse ages and wages, reported Social Security, and DB pension benefit fields; "
-                "SSA mortality and 2022 program parameters"
-                "; SSI average-payment benchmark"
+                FULL_MODEL_SOURCE_FIELDS
             )
         )
         source_keys = (
@@ -190,9 +196,11 @@ def build_age_shift_number_audit(
                         "sum(continuation_resources × SCF WGT for this respondent-age bucket)"
                     ),
                     "Source fields": (
-                        "Summary SCF rscfp2022.dta: NETWORTH, WGT, AGE; Full SCF p22i6.dta: "
-                        "X5819, X5821, X5825, respondent/spouse ages and wages, reported Social "
-                        "Security, and DB pension benefit fields; SSA mortality and 2022 program parameters"
+                    "Summary SCF rscfp2022.dta: NETWORTH, WGT, AGE; Full SCF p22i6.dta: "
+                        "X5819, X5821, X5825; respondent/spouse wage amounts, frequencies, hours, "
+                        "and weeks (X4110–X4113; X4710–X4713); current Social Security payment, "
+                        "frequency, and benefit type (X5304, X5306, X5307, X5309, X5311, X5312); "
+                        "DB pension benefit fields; SSA mortality and 2022 program parameters"
                     ),
                     "Source keys": (
                         "scf_summary; scf_full; ssa_period_life_2019_tr2022; "
@@ -230,12 +238,17 @@ def build_component_methodology_table(
                     "after-tax projected wage(t) / (1 + real discount rate)^t; a working-age "
                     "zero-wage adult uses a weighted median positive wage from the same SCF sex × age group"
                 ),
-                "Source fields": "Full SCF respondent/spouse ages, sex, wage amount and frequency",
+                "Source fields": (
+                    "Full SCF p22i6.dta: respondent age X14, sex X8021, wage amount/frequency "
+                    "X4112/X4113, hours/weeks X4110/X4111; spouse age X19, sex X103, wage "
+                    "amount/frequency X4712/X4713, hours/weeks X4710/X4711"
+                ),
                 "Current assumptions": (
                     f"discount={assumptions['discount_rate']:.3f}; "
                     f"real wage growth={assumptions['wage_growth']:.3f}; "
                     f"retirement age={assumptions['retirement_age']}; "
                     f"employment={assumptions['employment_probability']:.2f}; "
+                    f"re-entry probability={assumptions['reentry_probability']:.2f}; "
                     f"tax haircut={assumptions['tax_rate']:.2f}"
                 ),
                 "Source keys": "scf_full; ssa_period_life_2019_tr2022",
@@ -251,8 +264,9 @@ def build_component_methodology_table(
                     "AIME/PIA proxy, less PV of future employee OASDI contributions"
                 ),
                 "Source fields": (
-                    "Full SCF wages, ages, sex, reported current Social Security; SSA bend points, "
-                    "taxable maximum, employee rate, and mortality"
+                    "Full SCF p22i6.dta: respondent/spouse wage fields, ages, sex, reported current "
+                    "Social Security payment/frequency X5306/X5307 and X5311/X5312, and reported "
+                    "benefit types X5304/X5309; SSA bend points, taxable maximum, employee rate, and mortality"
                 ),
                 "Current assumptions": (
                     f"payable factor={assumptions['payable_benefit_factor']:.2f}; "
@@ -262,7 +276,11 @@ def build_component_methodology_table(
                     "scf_full; ssa_period_life_2019_tr2022; ssa_2022_parameters; "
                     "ssa_2022_trustees"
                 ),
-                "Important treatment": "Spousal and survivor benefits are excluded when unsupported.",
+                "Important treatment": (
+                    "Only reported retired-worker payments are used as current benefits. Reported SSI, "
+                    "disability, survivor/dependent, and unclassified payments are excluded from that "
+                    "retired-worker flow; unsupported spousal and survivor benefits are not imputed."
+                ),
             },
             {
                 "Component": "Defined-benefit pensions",
@@ -342,9 +360,10 @@ def build_component_methodology_table(
 def chart_source_caption() -> str:
     return (
         f"Source: {COMPUTED_SCF_SOURCE}. Conventional net worth uses networth x wgt. "
-        "The comprehensive model adds SCF-calibrated re-entry wages and a nonmarketable income-security "
-        "top-up scenario using the sidebar assumptions, plus a constrained inheritance reallocation from "
-        "SCF X5819, X5821, and X5825 with mortality-weighted donor reserves."
+        "The comprehensive model adds estimated labor resources, Social Security, and defined-benefit pensions "
+        "from the full SCF and SSA inputs, plus SCF-calibrated re-entry wages and a nonmarketable income-security "
+        "top-up scenario using the sidebar assumptions. It also includes a constrained inheritance reallocation "
+        "from SCF X5819, X5821, and X5825 with mortality-weighted donor reserves."
     )
 
 
@@ -363,7 +382,10 @@ def table_source_note() -> str:
 
 
 def computed_scf_row_source() -> str:
-    return "SCF 2022: networth, wageinc, age, wgt; full-wealth values also use sidebar assumptions"
+    return (
+        "SCF 2022: summary NETWORTH/WGT; full-file respondent/spouse wage, retirement, and "
+        "pension fields; model assumptions"
+    )
 
 
 def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFrame:
@@ -385,13 +407,15 @@ def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFra
         },
         {
             "Number category": "Discounted future earnings dollars and shares",
-            "Source": f"{SCF_2022_DATASET_LABEL} plus sidebar assumptions",
+            "Source": "Federal Reserve 2022 SCF full public file plus model assumptions",
             "Method": (
-                "Use positive wageinc, age, and wgt. Present value uses "
+                "Annualize detailed wage amount/frequency and reported work schedules for respondents and "
+                "spouses; rank and aggregate with summary NETWORTH/WGT. Present value uses "
                 f"discount_rate={assumptions['discount_rate']}, "
                 f"wage_growth={assumptions['wage_growth']}, "
                 f"retirement_age={assumptions['retirement_age']}, "
                 f"employment_probability={assumptions['employment_probability']}, "
+                f"reentry_probability={assumptions['reentry_probability']}, "
                 f"tax_rate={assumptions['tax_rate']}."
             ),
         },
@@ -424,11 +448,6 @@ def build_number_source_table(assumptions: dict[str, float | int]) -> pd.DataFra
             "Number category": "Flat tax haircut",
             "Source": ASSUMPTION_SOURCE,
             "Method": f"Sidebar value: tax_rate={assumptions['tax_rate']}.",
-        },
-        {
-            "Number category": "Human-capital liquidity weight",
-            "Source": ASSUMPTION_SOURCE,
-            "Method": f"Sidebar value: liquidity_weight={assumptions['liquidity_weight']}.",
         },
         {
             "Number category": "Income-security floor benchmark",

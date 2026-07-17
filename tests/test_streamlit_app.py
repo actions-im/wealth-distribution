@@ -20,16 +20,25 @@ def test_home_uses_two_state_distribution_shift():
     visible_copy = " ".join(
         [item.value for item in app.markdown] + [item.value for item in app.info]
     )
-    assert "future labor earnings" in visible_copy
+    assert "expected labor earnings" in visible_copy
     assert "Social Security" in visible_copy
-    assert "defined-benefit pensions" in visible_copy
-    assert "income-security floor" in visible_copy
-    assert "constrained aggregate inheritance reallocation" in visible_copy
+    assert "defined-benefit pension payments" in visible_copy
+    assert "income-security scenario" in visible_copy
+    assert "constrained expected-inheritance reallocation" in visible_copy
     assert "affirmative SCF inheritance-expectation" in visible_copy
     assert "including SCF imputation where applicable" in visible_copy
     assert "does not add or create national wealth" in visible_copy
     assert "newly created wealth" not in visible_copy.lower()
+    assert "valid current-ownership accounting measure" in visible_copy
+    assert "incomplete when used as a measure of total economic value" in visible_copy
+    assert "future cash flows, risk, and discounting" in visible_copy
+    assert "scheduled Social Security benefits" in visible_copy
+    assert "4,595 surveyed SCF families" in visible_copy
+    assert "five multiple-imputation implicates" in visible_copy
+    assert "22,975 record rows" in visible_copy
+    assert "WGT" in visible_copy
     assert "Expected inheritance horizon (years)" in [slider.label for slider in app.slider]
+    assert "Human-capital liquidity weight" not in [slider.label for slider in app.slider]
 
 
 def test_home_uses_purpose_built_chart_helper():
@@ -61,6 +70,7 @@ def test_age_distribution_shift_page_renders_six_within_age_views():
     assert "including SCF imputation where applicable" in visible_copy
     assert "does not add or create national wealth" in visible_copy
     assert "newly created wealth" not in visible_copy.lower()
+    assert "Negative conventional shares represent aggregate debt" in visible_copy
     assert (
         "validate_inheritance_reallocation_conservation(data)"
         in Path("app_pages/age_slicing.py").read_text()

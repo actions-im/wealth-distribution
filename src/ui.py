@@ -50,13 +50,6 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
         step=0.01,
     )
     tax_rate = st.sidebar.slider("Flat tax haircut", 0.0, 0.5, DEFAULT_ASSUMPTIONS["tax_rate"], step=0.01)
-    liquidity_weight = st.sidebar.slider(
-        "Human-capital liquidity weight",
-        0.0,
-        1.0,
-        DEFAULT_ASSUMPTIONS["liquidity_weight"],
-        step=0.05,
-    )
     reentry_probability = st.sidebar.slider(
         "Non-earner re-entry probability",
         0.0,
@@ -101,7 +94,6 @@ def render_assumption_sidebar(include_wealth_definition: bool = False) -> dict[s
         "retirement_age": retirement_age,
         "employment_probability": employment_probability,
         "tax_rate": tax_rate,
-        "liquidity_weight": liquidity_weight,
         "reentry_probability": reentry_probability,
         "payable_benefit_factor": payable_benefit_factor,
         "income_security_floor_monthly": income_security_floor_monthly,
@@ -134,5 +126,6 @@ def methodology_expander() -> None:
         st.markdown(
             "Federal Reserve research has used related human-wealth or comprehensive-wealth concepts, "
             "including present-value treatment of future income. The interactive estimates use SCF 2022 "
-            "net worth, wage income, age, and household weights. See Methodology for source links."
+            "summary net worth and weights plus detailed respondent/spouse wage, work-schedule, retirement, "
+            "and pension fields. See Methodology for source links."
         )

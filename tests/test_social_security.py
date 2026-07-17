@@ -49,6 +49,24 @@ def test_current_recipient_uses_reported_benefit():
     assert value.future_employee_contributions == 0
 
 
+def test_current_ssi_payment_is_not_treated_as_retired_worker_benefit():
+    person = SocialSecurityPerson(
+        age=70,
+        annual_wage=0,
+        annual_reported_benefit=24_000,
+        reported_benefit_type="ssi",
+        career_years=35,
+        claiming_age=67,
+    )
+
+    value = social_security_wealth(
+        person, mode="accrued", payable_factor=1, survival=[1] * 50, discount_rate=0
+    )
+
+    assert value.used_reported_benefit is False
+    assert "reported_ssi_benefit_excluded" in value.exclusions
+
+
 def test_continuation_credits_more_earnings_years_than_accrued():
     person = SocialSecurityPerson(age=40, annual_wage=60_000, career_years=18)
     accrued = social_security_wealth(person, mode="accrued", survival=[1] * 80)

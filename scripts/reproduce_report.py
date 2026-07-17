@@ -15,9 +15,17 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from src.config import ModelAssumptions  # noqa: E402
-from src.real_data import build_ranked_distributions  # noqa: E402
+from src.real_data import (  # noqa: E402
+    aggregate_ranked_resource_distributions,
+    build_ranked_distributions,
+    load_comprehensive_household_data,
+)
 from src.reconciliation import load_official_db_total, reconcile  # noqa: E402
-from src.source_manifest import load_source_registry  # noqa: E402
+from src.reporting import (  # noqa: E402
+    build_age_distribution_shift_data,
+    build_distribution_shift_data,
+)
+from src.source_manifest import load_source_registry, sha256_file  # noqa: E402
 
 
 def _fixture_households() -> pd.DataFrame:
@@ -25,6 +33,7 @@ def _fixture_households() -> pd.DataFrame:
         {
             "household_id": [1, 2, 3, 4, 5],
             "household_weight": [500, 400, 90, 9, 1],
+            "age": [28, 38, 49, 61, 72],
             "net_worth": [30_000, 200_000, 2_000_000, 15_000_000, 200_000_000],
             "accrued_labor": [800_000, 900_000, 700_000, 400_000, 200_000],
             "continuation_labor": [1_100_000, 1_300_000, 1_100_000, 650_000, 350_000],
@@ -55,14 +64,23 @@ def _git_revision() -> str | None:
     return result.stdout.strip() if result.returncode == 0 else None
 
 
+def _git_worktree_status() -> list[str]:
+    """Record whether the export was produced from a clean, committed worktree."""
+    result = subprocess.run(
+        ["git", "status", "--porcelain"], capture_output=True, text=True, check=False
+    )
+    return result.stdout.splitlines() if result.returncode == 0 else []
+
+
 def reproduce(*, output_dir: str | Path, use_fixture: bool = False) -> None:
-    if not use_fixture:
-        raise ValueError(
-            "real-data reproduction requires the pinned SCF full dataset; use --fixture for CI"
-        )
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
-    households = _fixture_households()
+    assumptions = ModelAssumptions()
+    households = (
+        _fixture_households()
+        if use_fixture
+        else load_comprehensive_household_data(assumptions)
+    )
     ranked = build_ranked_distributions(households)
 
     headline_rows = []
@@ -97,40 +115,56 @@ def reproduce(*, output_dir: str | Path, use_fixture: bool = False) -> None:
                     ).sum(),
                 }
             )
-    pd.DataFrame(headline_rows).to_csv(output / "headline.csv", index=False)
+    pd.DataFrame(headline_rows).to_csv(output / "top_shares.csv", index=False)
     pd.DataFrame(detail_rows).to_csv(output / "detail.csv", index=False)
     pd.DataFrame(
         [
-            {"scenario": "lower_discount", "discount_rate": 0.02},
-            {"scenario": "baseline", "discount_rate": 0.035},
-            {"scenario": "higher_discount", "discount_rate": 0.05},
+            {"control": name, "baseline_value": value}
+            for name, value in asdict(assumptions).items()
         ]
-    ).to_csv(output / "sensitivity.csv", index=False)
+    ).to_csv(output / "scenario_controls.csv", index=False)
+
+    distribution = aggregate_ranked_resource_distributions(households)
+    build_distribution_shift_data(distribution).to_csv(
+        output / "headline.csv", index=False
+    )
+    _component_totals(households).to_csv(output / "component_totals.csv", index=False)
+    build_age_distribution_shift_data(households).to_csv(
+        output / "age_distribution.csv", index=False
+    )
 
     official = load_official_db_total(year=2022)
     micro_db_total = float(
         (households["accrued_db_pension"] * households["household_weight"]).sum()
     )
-    assumptions = ModelAssumptions()
+    reconciliation = reconcile(micro_total=micro_db_total, official_total=official.value_dollars)
+    pd.DataFrame([asdict(reconciliation)]).to_csv(
+        output / "reconciliation.csv", index=False
+    )
     registry = load_source_registry()
+    worktree_status = _git_worktree_status()
     manifest = {
         "generated_at": datetime.now(UTC).isoformat(),
         "git_revision": _git_revision(),
-        "fixture": True,
+        "git_worktree_dirty": bool(worktree_status),
+        "git_worktree_status": worktree_status,
+        "fixture": use_fixture,
         "assumptions": asdict(assumptions),
         "measure_definitions": {
             "conventional": "SCF assets minus liabilities",
             "defensive_resources": "net worth plus defensive labor, accrued Social Security, and accrued DB pensions",
-            "continuation_resources": "net worth plus continued labor, Social Security, and DB pension projections",
+            "continuation_resources": (
+                "net worth plus continuation labor, Social Security, DB pensions, the income-security "
+                "scenario, and the conserved inheritance reallocation"
+            ),
         },
         "ranking": "Each measure is ranked independently; rank_group uses weighted cumulative position.",
-        "reconciliation": asdict(
-            reconcile(micro_total=micro_db_total, official_total=official.value_dollars)
-        ),
+        "reconciliation": asdict(reconciliation),
         "official_db_reference": asdict(official),
-        "registered_sources": {key: asdict(value) for key, value in registry.items()},
+        "active_sources": _active_source_records(registry),
         "exclusions": [
-            "spousal and survivor Social Security benefits",
+            "unsupported Social Security spousal and survivor benefits",
+            "reported SSI, disability, survivor/dependent, and unclassified payments are not used as retired-worker benefits",
             "DB survivor annuities without joint survival inputs",
             "DC balances already included in net worth",
         ],
@@ -138,9 +172,77 @@ def reproduce(*, output_dir: str | Path, use_fixture: bool = False) -> None:
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 
 
+def _component_totals(households: pd.DataFrame) -> pd.DataFrame:
+    components = [
+        ("net_worth", "+"),
+        ("continuation_labor", "+"),
+        ("continuation_social_security", "+"),
+        ("continuation_db_pension", "+"),
+        ("continuation_income_security_floor", "+"),
+        ("continuation_expected_inheritance", "+"),
+        ("continuation_estate_donor_reserve", "−"),
+        ("continuation_resources", "total"),
+    ]
+    rows = []
+    for component, direction in components:
+        if component not in households:
+            continue
+        rows.append(
+            {
+                "component": component,
+                "direction": direction,
+                "weighted_total_dollars": float(
+                    (households[component] * households["household_weight"]).sum()
+                ),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _active_source_records(registry: dict) -> dict[str, dict[str, object]]:
+    local_paths = {
+        "scf_summary": REPOSITORY_ROOT / "data/raw/scf_2022_extract.zip",
+        "scf_full": REPOSITORY_ROOT / "data/raw/scf_2022_full.zip",
+        "ssa_period_life_2019_tr2022": (
+            REPOSITORY_ROOT / "data/reference/ssa_period_life_2019_tr2022.csv"
+        ),
+        "fed_z1_db_pensions": (
+            REPOSITORY_ROOT / "data/reference/fed_z1_defined_benefit_2022.csv"
+        ),
+    }
+    active_keys = (
+        "scf_summary",
+        "scf_full",
+        "ssa_period_life_2019_tr2022",
+        "ssa_2022_parameters",
+        "ssa_2022_trustees",
+        "ssa_2022_ssi",
+        "fed_z1_db_pensions",
+    )
+    records: dict[str, dict[str, object]] = {}
+    for key in active_keys:
+        specification = registry[key]
+        path = local_paths.get(key)
+        record = asdict(specification)
+        record["local_path"] = str(path) if path and path.exists() else None
+        record["local_sha256"] = sha256_file(path) if path and path.exists() else None
+        if record["local_sha256"] is None:
+            record["integrity_status"] = "not-present"
+        elif specification.sha256 is None:
+            record["integrity_status"] = "hash-unpinned"
+        elif record["local_sha256"].lower() == specification.sha256.lower():
+            record["integrity_status"] = "verified"
+        else:
+            record["integrity_status"] = "mismatch"
+        records[key] = record
+    return records
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--fixture", action="store_true")
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--fixture", action="store_true")
+    mode.add_argument("--real-data", action="store_true")
     args = parser.parse_args()
     reproduce(output_dir=args.output_dir, use_fixture=args.fixture)

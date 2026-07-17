@@ -57,6 +57,11 @@ st.info(
     "bottom half of families of that age under the measure shown—not a nationally fixed group of people.",
     icon=":material/info:",
 )
+st.info(
+    "Negative conventional shares represent aggregate debt in a ranked interval. They are drawn to the "
+    "left of zero rather than omitted from the age-panel bars.",
+    icon=":material/account_balance:",
+)
 st.caption(
     "Unit: SCF family; age: survey respondent's age. Modeled future resources include estimated future "
     "labor earnings, Social Security, defined-benefit pensions, and a modeled income-security floor, subject "

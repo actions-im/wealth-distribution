@@ -31,15 +31,32 @@ shift_data = build_distribution_shift_data(distribution)
 
 st.title("Conventional Wealth and Comprehensive Household Resources")
 st.caption(
-    "2022 Survey of Consumer Finances families · each measure ranked independently · "
-    "modeled values are nonmarketable resources, not official Federal Reserve wealth statistics"
+    "2022 Survey of Consumer Finances families · two independently ranked estimands · "
+    "model-derived values are not official Federal Reserve wealth statistics"
 )
 st.markdown(
-    "Conventional net worth measures owned assets minus liabilities. This report also asks a different "
-    "question: how are modeled lifetime economic resources distributed when expected labor earnings, "
-    "Social Security, defined-benefit pensions, and a scenario-based income-security floor are valued explicitly? "
-    "The all-modeled-resources state also includes a constrained aggregate inheritance reallocation. "
-    "The measures are shown together, with their differences and limitations visible."
+    "**Public debate often treats ‘wealth inequality’ as a complete account of economic advantage.** "
+    "Conventional net worth is a **valid current-ownership accounting measure**—owned assets minus "
+    "liabilities—but it is **incomplete when used as a measure of total economic value** held by the population.\n\n"
+    "Market values of corporate equity, real estate, and private businesses reflect expectations about "
+    "**future cash flows, risk, and discounting**, including for concentrated or illiquid holdings. "
+    "Conventional net-worth statistics count those capitalized owner returns today, while expected cash "
+    "flows outside the ownership balance sheet are generally assigned no value.\n\n"
+    "This report applies a transparent present-value framework to **expected labor earnings, scheduled Social "
+    "Security benefits net of modeled employee contributions, defined-benefit pension payments, an "
+    "income-security scenario, and a constrained expected-inheritance reallocation**. These components "
+    "differ in legal status, certainty, liquidity, and transferability. Those differences are valuation "
+    "questions; they are not, by themselves, a reason to assign every non-balance-sheet resource a value of zero."
+)
+st.info(
+    "**Data basis.** The model uses the Federal Reserve’s 2022 Survey of Consumer Finances public summary "
+    "and detailed files: **4,595 surveyed SCF families** represented in **five multiple-imputation implicates** "
+    "(**22,975 record rows**). It applies the supplied SCF family weight **WGT** to represent weighted U.S. "
+    "families, combines summary-file NETWORTH with detailed respondent/spouse wage and work-schedule fields, "
+    "reported Social Security and defined-benefit pension fields, and SCF inheritance expectations and estate "
+    "intent. SSA mortality and 2022 program parameters, plus a Federal Reserve Financial Accounts defined-benefit "
+    "benchmark, supply the non-survey inputs.",
+    icon=":material/dataset:",
 )
 
 comparison_rows = shift_data.drop_duplicates("group")
@@ -63,14 +80,15 @@ st.caption(
 
 st.subheader("How including future resources changes the distribution")
 st.markdown(
-    "The second bar adds **future labor earnings, Social Security, defined-benefit pensions, and a "
-    "modeled income-security floor**, plus a **constrained aggregate inheritance reallocation**, "
-    "to conventional net worth. It is labeled *all modeled future resources* because these values "
-    "are estimates—not liquid or transferable assets. Positive inheritance credits are assigned only to "
-    "families with affirmative SCF inheritance-expectation responses and positive field values (including "
-    "SCF imputation where applicable), then offset by the same weighted aggregate of mortality-weighted "
-    "reserves for estate-intending owners; it does not add or create national wealth. Conventional "
-    "net worth remains a current-ownership measure and is not changed by this reallocation."
+    "The first bar is the current-ownership balance sheet. The second is a broader, explicitly bounded "
+    "estimate of lifetime economic resources: it adds the modeled future cash flows above to conventional "
+    "net worth. It does **not** claim that those components are identical to tradable securities or that "
+    "they belong on a conventional accounting balance sheet.\n\n"
+    "Positive inheritance credits are assigned only to families with affirmative SCF inheritance-expectation "
+    "responses and positive field values (including SCF imputation where applicable), then offset by the same "
+    "weighted aggregate of mortality-weighted reserves for estate-intending owners; it does not add or create "
+    "national wealth. Conventional net worth remains a current-ownership measure and is not changed by this "
+    "reallocation."
 )
 st.plotly_chart(
     distribution_shift_figure(shift_data),

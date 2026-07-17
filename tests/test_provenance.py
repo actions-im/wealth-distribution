@@ -40,6 +40,45 @@ def test_number_source_table_maps_calculated_and_assumption_numbers():
 def test_chart_source_caption_identifies_computed_scf_source():
     assert chart_source_caption().startswith("Source:")
     assert COMPUTED_SCF_SOURCE in chart_source_caption()
+    assert "Social Security" in chart_source_caption()
+    assert "defined-benefit pensions" in chart_source_caption()
+
+
+def test_comprehensive_provenance_matches_detailed_wage_and_benefit_rules():
+    methodology = build_component_methodology_table(DEFAULT_ASSUMPTIONS).set_index(
+        "Component"
+    )
+    labor = methodology.loc["Future labor earnings"]
+    social_security = methodology.loc["Social Security"]
+    source_table = build_number_source_table(DEFAULT_ASSUMPTIONS)
+
+    assert "Full SCF p22i6.dta" in COMPUTED_SCF_SOURCE
+    assert "X4110" in labor["Source fields"]
+    assert "X4111" in labor["Source fields"]
+    assert "X4710" in labor["Source fields"]
+    assert "X4711" in labor["Source fields"]
+    assert "re-entry probability" in labor["Current assumptions"]
+    assert "X5304" in social_security["Source fields"]
+    assert "X5309" in social_security["Source fields"]
+    assert "SSI" in social_security["Important treatment"]
+    assert "disability" in social_security["Important treatment"]
+    assert not source_table["Number category"].str.contains(
+        "Human-capital liquidity weight"
+    ).any()
+    earnings_method = source_table.loc[
+        source_table["Number category"] == "Discounted future earnings dollars and shares",
+        "Method",
+    ].iloc[0]
+    assert "wageinc" not in earnings_method
+    assert "detailed wage" in earnings_method
+
+    audit = build_shift_number_audit(_shift_data(), DEFAULT_ASSUMPTIONS)
+    modeled_sources = audit.loc[
+        audit["Displayed number"].str.contains("All modeled future resources"),
+        "Source fields",
+    ]
+    assert modeled_sources.str.contains("X4110–X4113").all()
+    assert modeled_sources.str.contains("X5304").all()
 
 
 def test_inheritance_reallocation_provenance_discloses_conserved_allocator():

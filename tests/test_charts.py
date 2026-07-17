@@ -40,6 +40,47 @@ def test_distribution_shift_figure_formats_static_in_block_labels_without_hover(
     assert all(trace.hovertemplate is None for trace in figure.data)
 
 
+def test_distribution_shift_figure_keeps_negative_shares_visible():
+    data = _shift_data()
+    negative = data.index[
+        (data["state"] == "Conventional net worth")
+        & (data["group"] == "Bottom 50%")
+    ][0]
+    data.loc[negative, "share"] = -0.034
+    data.loc[negative, "weighted_total"] = -22_600_000_000
+    next_40 = data.index[
+        (data["state"] == "Conventional net worth")
+        & (data["group"] == "Next 40%")
+    ][0]
+    data.loc[next_40, "share"] = 0.294
+
+    figure = distribution_shift_figure(data)
+    negative_trace = next(
+        trace
+        for trace in figure.data
+        if trace.name == "Bottom 50%"
+        and trace.y[0] == "Conventional net worth"
+    )
+
+    assert figure.layout.xaxis.range[0] < 0
+    assert figure.layout.xaxis.range[1] > 1
+    assert negative_trace.text == ("−3.4% [−$22.6B]",)
+    assert negative_trace.textposition == "outside"
+
+
+def test_distribution_shift_figure_does_not_responsively_hide_eligible_top_one_label():
+    figure = distribution_shift_figure(_shift_data())
+    top_one = next(
+        trace
+        for trace in figure.data
+        if trace.name == "Top 1%"
+        and trace.y[0] == "All modeled future resources"
+    )
+
+    assert top_one.text == ("19.0% [$0.2T]",)
+    assert figure.layout.uniformtext.mode == "show"
+
+
 def _shift_data():
     shares = {
         "Conventional net worth": [0.02, 0.24, 0.39, 0.35],

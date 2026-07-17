@@ -45,9 +45,9 @@ from src.weighted_stats import (
 
 SCF_2022_DATASET_LABEL = "Federal Reserve 2022 SCF public summary extract"
 SCF_2022_DATA_NOTE = (
-    "Charts use the Federal Reserve 2022 Survey of Consumer Finances public summary extract. "
-    "Rows are weighted with SCF household weights; future earnings use positive SCF wage income "
-    "as the labor-income proxy."
+    "The conventional measure uses the Federal Reserve 2022 Survey of Consumer Finances public "
+    "summary extract and SCF household weights. The comprehensive model additionally uses the full "
+    "public file's respondent/spouse wage, work-schedule, retirement, and pension fields."
 )
 
 WEALTH_QUANTILE_GROUPS = [
@@ -269,6 +269,7 @@ def value_detailed_household(
             age=person.age,
             annual_wage=person.annual_wage,
             annual_reported_benefit=person.annual_social_security,
+            reported_benefit_type=person.social_security_benefit_type,
             career_years=career_years,
             claiming_age=assumptions.retirement_age,
         )

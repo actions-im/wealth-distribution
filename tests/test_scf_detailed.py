@@ -62,6 +62,63 @@ def test_detailed_inputs_keep_people_and_social_security_separate(detailed_scf_r
     assert household.spouse.annual_social_security == 0
 
 
+def test_hourly_wage_uses_reported_hours_and_weeks(detailed_scf_row):
+    detailed_scf_row.update(
+        {
+            "x4112": 25,
+            "x4113": 18,
+            "x4110": 40,
+            "x4111": 50,
+        }
+    )
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.respondent.annual_wage == pytest.approx(50_000)
+
+
+def test_twice_monthly_wage_is_annualized(detailed_scf_row):
+    detailed_scf_row.update({"x4112": 2_000, "x4113": 31})
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.respondent.annual_wage == pytest.approx(48_000)
+
+
+def test_weekly_wage_uses_reported_weeks_worked(detailed_scf_row):
+    detailed_scf_row.update({"x4112": 1_000, "x4113": 2, "x4111": 40})
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.respondent.annual_wage == pytest.approx(40_000)
+
+
+def test_spouse_biweekly_wage_uses_reported_weeks_worked(detailed_scf_row):
+    detailed_scf_row.update({"x4712": 2_000, "x4713": 3, "x4711": 40})
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.spouse is not None
+    assert household.spouse.annual_wage == pytest.approx(40_000)
+
+
+@pytest.mark.parametrize(
+    ("code", "expected_type"),
+    [
+        (1, "retirement"),
+        (2, "disability"),
+        (3, "survivor_or_dependent"),
+        (7, "ssi"),
+    ],
+)
+def test_social_security_payment_type_is_retained(detailed_scf_row, code, expected_type):
+    detailed_scf_row["x5304"] = code
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.respondent.social_security_benefit_type == expected_type
+
+
 @pytest.mark.parametrize("response", [1, 1.0])
 def test_affirmative_inheritance_expectation_preserves_positive_amount(
     detailed_scf_row, response

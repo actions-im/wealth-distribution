@@ -27,10 +27,10 @@ On first use, the app downloads the hash-pinned Federal Reserve 2022 SCF summary
 uv run pytest -q
 uvx ruff check Home.py app_pages src scripts tests
 uv run python -m compileall -q Home.py app_pages src scripts tests
-uv run python scripts/reproduce_report.py --fixture --output-dir build/report
+uv run python scripts/reproduce_report.py --real-data --output-dir build/report
 ```
 
-The fixture checks the output contract; it is not an empirical result. The Streamlit app calculates real-data point estimates from pinned SCF inputs.
+The real-data export writes the Home comparison, Age slicing data, component totals, rank detail, reconciliation, scenario controls, and source-integrity manifest. Use `--fixture` only to check the output contract; it is not an empirical result.
 
 ## Audit trail
 
