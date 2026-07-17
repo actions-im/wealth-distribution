@@ -1,0 +1,1 @@
+This command loads the same pinned SCF inputs and baseline assumptions as the report, then writes the four-group headline comparison, age-panel data, component totals, full rank detail, reconciliation, scenario controls, source hashes with integrity status, and Git revision. For a fast code-path contract check, use `--fixture` instead.

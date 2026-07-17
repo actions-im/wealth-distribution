@@ -1,0 +1,4 @@
+- **Conventional net worth:** SCF assets minus liabilities. Retirement account balances are already included.
+- **Defensive accrued resources:** conventional net worth plus zero-real-growth labor resources, accrued Social Security, and accrued DB benefits. Social Security is net of modeled future employee contributions and the selected payable factor.
+- **Continuation resources:** conventional net worth plus labor earnings and retirement claims under continued earnings and pension accrual through retirement, plus a modeled income-security top-up when projected annual income is below the selected benchmark, and a constrained aggregate inheritance reallocation. The inheritance credit and donor reserve offset in the weighted national total.
+- **Excluded:** unsupported Social Security spousal/survivor benefits and DB survivor annuities without joint-life inputs. Defined-contribution balances are never added twice.

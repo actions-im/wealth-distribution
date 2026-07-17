@@ -14,18 +14,18 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from src.config import ModelAssumptions  # noqa: E402
-from src.real_data import (  # noqa: E402
+from wealth_report.model.assumptions import ModelAssumptions  # noqa: E402
+from wealth_report.report.builder import (  # noqa: E402
     aggregate_ranked_resource_distributions,
     build_ranked_distributions,
     load_comprehensive_household_data,
 )
-from src.reconciliation import load_official_db_total, reconcile  # noqa: E402
-from src.reporting import (  # noqa: E402
+from wealth_report.report.reconciliation import load_official_db_total, reconcile  # noqa: E402
+from wealth_report.report.distribution import (  # noqa: E402
     build_age_distribution_shift_data,
     build_distribution_shift_data,
 )
-from src.source_manifest import load_source_registry, sha256_file  # noqa: E402
+from wealth_report.providers.sources import load_source_registry, sha256_file  # noqa: E402
 
 
 def _fixture_households() -> pd.DataFrame:

@@ -1,0 +1,5 @@
+**Public debate often treats ‘wealth inequality’ as a complete account of economic advantage.** Conventional net worth is a **valid current-ownership accounting measure**—owned assets minus liabilities—but it is **incomplete when used as a measure of total economic value** held by the population.
+
+Market values of corporate equity, real estate, and private businesses reflect expectations about **future cash flows, risk, and discounting**, including for concentrated or illiquid holdings. Conventional net-worth statistics count those capitalized owner returns today, while expected cash flows outside the ownership balance sheet are generally assigned no value.
+
+This report applies a transparent present-value framework to **expected labor earnings, scheduled Social Security benefits net of modeled employee contributions, defined-benefit pension payments, an income-security scenario, and a constrained expected-inheritance reallocation**. These components differ in legal status, certainty, liquidity, and transferability. Those differences are valuation questions; they are not, by themselves, a reason to assign every non-balance-sheet resource a value of zero.

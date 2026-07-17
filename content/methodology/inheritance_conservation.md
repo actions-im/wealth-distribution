@@ -1,0 +1,1 @@
+The continuation-resource calculation enforces weighted credits = weighted donor reserves: sum(WGT × recipient credit) = sum(WGT × donor reserve), within a one-cent or one-part-in-10^12 floating-point tolerance. Recipient claims are funded only up to min(claims, capacity), so the constrained aggregate reallocation does not create national wealth.

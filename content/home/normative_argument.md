@@ -1,0 +1,1 @@
+Claims about equality of rights versus equality of outcomes are political or philosophical claims. They do not follow mechanically from these estimates, and the empirical calculations do not depend on them.

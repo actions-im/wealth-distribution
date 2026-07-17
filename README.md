@@ -16,7 +16,7 @@ The public app has three views: **Home** for the national distribution shift, **
 
 ```bash
 uv sync
-uv run streamlit run Home.py
+uv run streamlit run app.py
 ```
 
 On first use, the app downloads the hash-pinned Federal Reserve 2022 SCF summary and full public files. A normalized SSA mortality snapshot is committed because SSA blocks unattended downloads in some environments.
@@ -25,8 +25,8 @@ On first use, the app downloads the hash-pinned Federal Reserve 2022 SCF summary
 
 ```bash
 uv run pytest -q
-uvx ruff check Home.py app_pages src scripts tests
-uv run python -m compileall -q Home.py app_pages src scripts tests
+uvx ruff check app.py wealth_report scripts tests
+uv run python -m compileall -q app.py wealth_report scripts tests
 uv run python scripts/reproduce_report.py --real-data --output-dir build/report
 ```
 

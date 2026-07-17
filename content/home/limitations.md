@@ -1,0 +1,1 @@
+Lifecycle composition matters. Younger families generally have more remaining labor resources and less accumulated balance-sheet wealth. This is a cross-sectional comparison under the same lifecycle framework, not a claim that labor resources are liquid, transferable, collateralizable, or inheritable.
