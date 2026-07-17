@@ -86,12 +86,22 @@ def value_detailed_household(
     life_table: dict[str, dict[int, float]],
     assumptions: ModelAssumptions = ModelAssumptions(),
     reentry_wage_schedule: Mapping[tuple[str, str], float] | None = None,
+    survival_cache: dict[tuple[str, int], list[float]] | None = None,
 ) -> ComprehensiveHouseholdRecord:
-    """Value person-level SCF inputs and retain explicit model exclusions."""
+    """Value person-level SCF inputs and retain explicit model exclusions.
+
+    Pass a shared ``survival_cache`` when valuing many households so survival
+    curves are reused across people with the same sex and age.
+    """
     exclusions: set[str] = set()
     people = _household_people(household)
     survival = {
-        owner: _future_survival(person, life_table=life_table, exclusions=exclusions)
+        owner: _future_survival(
+            person,
+            life_table=life_table,
+            exclusions=exclusions,
+            survival_cache=survival_cache,
+        )
         for owner, person in people
     }
 
@@ -161,12 +171,18 @@ def _future_survival(
     *,
     life_table: dict[str, dict[int, float]],
     exclusions: set[str],
+    survival_cache: dict[tuple[str, int], list[float]] | None = None,
 ) -> list[float]:
     if person.sex not in life_table:
         exclusions.add(f"unknown_sex_{person.sex}")
         return []
-    curve = conditional_survival(life_table[person.sex], person.age)
-    return curve[1:]
+    key = (person.sex, int(person.age))
+    if survival_cache is not None and key in survival_cache:
+        return survival_cache[key]
+    curve = conditional_survival(life_table[person.sex], person.age)[1:]
+    if survival_cache is not None:
+        survival_cache[key] = curve
+    return curve
 
 
 def _value_labor(

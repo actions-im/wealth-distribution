@@ -243,4 +243,8 @@ def main() -> None:
     st.caption(load_markdown("methodology/reproduction"))
 
 
-main()
+if __name__ == "__main__":
+    import multiprocessing as mp
+
+    if mp.current_process().name == "MainProcess":
+        main()

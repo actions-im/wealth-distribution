@@ -75,4 +75,8 @@ def main() -> None:
     methodology_expander()
 
 
-main()
+if __name__ == "__main__":
+    import multiprocessing as mp
+
+    if mp.current_process().name == "MainProcess":
+        main()

@@ -76,4 +76,10 @@ def main() -> None:
     methodology_expander()
 
 
-main()
+if __name__ == "__main__":
+    # Streamlit runs pages as __main__. Process-pool workers may re-import this
+    # file as __main__ under spawn — only execute UI in the primary process.
+    import multiprocessing as mp
+
+    if mp.current_process().name == "MainProcess":
+        main()
