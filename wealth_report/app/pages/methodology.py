@@ -214,6 +214,8 @@ def main() -> None:
                 "Provider": record["provider"],
                 "Vintage": record["vintage"],
                 "Canonical URL": record["url"],
+                "Documentation": record["documentation_url"] or "",
+                "Description": record["description"] or "",
                 "Local filename": record["filename"],
                 "SHA-256": record["sha256"] or "Provider page / committed snapshot",
             }
@@ -222,7 +224,11 @@ def main() -> None:
         pd.DataFrame(registry_rows),
         hide_index=True,
         width="stretch",
-        column_config={"Canonical URL": st.column_config.LinkColumn("Canonical URL")},
+        column_config={
+            "Canonical URL": st.column_config.LinkColumn("Canonical URL"),
+            "Documentation": st.column_config.LinkColumn("Documentation"),
+            "Description": st.column_config.TextColumn(width="large"),
+        },
     )
     st.caption(
         "Repository references: docs/methodology.md contains the long-form limitations; "

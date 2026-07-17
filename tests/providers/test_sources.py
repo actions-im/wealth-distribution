@@ -27,6 +27,11 @@ def test_registry_contains_required_official_sources():
         "fed_z1_db_pensions",
     } <= set(registry)
     assert all(spec.url.startswith("https://") for spec in registry.values())
+    for key in ("scf_summary", "scf_full"):
+        assert registry[key].documentation_url == (
+            "https://www.federalreserve.gov/econres/scfindex.htm"
+        )
+        assert registry[key].description
 
 
 def test_verify_artifact_rejects_wrong_hash(tmp_path):

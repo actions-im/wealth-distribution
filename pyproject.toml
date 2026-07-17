@@ -1,5 +1,5 @@
 [project]
-name = "real-wealth-distribution"
+name = "wealth-report"
 version = "0.2.0"
 description = "Interactive Streamlit report comparing conventional net worth with modeled comprehensive household resources."
 readme = "README.md"
@@ -11,7 +11,6 @@ dependencies = [
     "pandas",
     "plotly",
     "pyarrow",
-    "python-dotenv",
     "requests",
     "scipy",
     "statsmodels",

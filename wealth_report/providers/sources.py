@@ -29,6 +29,8 @@ class SourceSpec:
     url: str
     vintage: str
     filename: str
+    documentation_url: str | None = None
+    description: str | None = None
     sha256: str | None = None
     archive_member: str | None = None
 

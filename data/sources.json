@@ -2,6 +2,8 @@
   "scf_summary": {
     "provider": "Federal Reserve Board",
     "url": "https://www.federalreserve.gov/econres/files/scfp2022s.zip",
+    "documentation_url": "https://www.federalreserve.gov/econres/scfindex.htm",
+    "description": "Federal Reserve 2022 SCF public summary extract, with links to the survey overview, codebook, technical documents, and related public files.",
     "vintage": "2022 public summary extract, updated 2024-04-03",
     "filename": "scf_2022_extract.zip",
     "archive_member": "rscfp2022.dta",
@@ -10,6 +12,8 @@
   "scf_full": {
     "provider": "Federal Reserve Board",
     "url": "https://www.federalreserve.gov/econres/files/scf2022s.zip",
+    "documentation_url": "https://www.federalreserve.gov/econres/scfindex.htm",
+    "description": "Federal Reserve 2022 SCF full public dataset, with links to the survey overview, codebook, technical documents, and related public files.",
     "vintage": "2022 full public dataset, updated 2023-10-18",
     "filename": "scf_2022_full.zip",
     "sha256": "409e6811df895766d50b2f597c10b1b3c5813e7d3e0e45d910ad26c0cb07f4eb"

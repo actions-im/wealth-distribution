@@ -59,6 +59,7 @@ def test_methodology_page_configures_clickable_source_urls():
     source = Path("wealth_report/app/pages/methodology.py").read_text()
 
     assert 'st.column_config.LinkColumn("Canonical URL")' in source
+    assert 'st.column_config.LinkColumn("Documentation")' in source
     assert "build_shift_number_audit" in source
     assert "build_age_shift_number_audit" in source
     assert "build_component_methodology_table" in source
