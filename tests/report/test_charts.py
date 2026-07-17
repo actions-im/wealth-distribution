@@ -12,32 +12,22 @@ def test_distribution_shift_figure_has_two_states_and_four_groups():
         "Conventional net worth",
         "All modeled future resources",
     }
-    assert not figure.layout.annotations
 
 
-def test_distribution_shift_figure_formats_static_in_block_labels_without_hover():
+def test_distribution_shift_figure_formats_static_labels_without_hover():
     figure = distribution_shift_figure(_shift_data())
-    full_resources_bottom_50 = next(
-        trace
-        for trace in figure.data
-        if trace.name == "Bottom 50%"
-        and trace.y[0] == "All modeled future resources"
-    )
-    conventional_bottom_50 = next(
-        trace
-        for trace in figure.data
-        if trace.name == "Bottom 50%"
-        and trace.y[0] == "Conventional net worth"
-    )
+    labels = {annotation["text"] for annotation in figure.layout.annotations}
 
     assert figure.layout.barmode == "stack"
     assert figure.layout.xaxis.tickformat == ".0%"
-    assert figure.layout.xaxis.range == (0, 1)
-    assert full_resources_bottom_50.text == ("10.0% [$0.1T]",)
-    assert conventional_bottom_50.text == ("",)
-    assert not figure.layout.annotations
+    assert figure.layout.xaxis.range == (0.0, 1.0)
+    assert "10.0% [$0.1T]" in labels
+    # Conventional Bottom 50% is only 2% — too narrow for an in-segment label.
+    assert "2.0% [$0.0T]" not in labels
     assert all(trace.hoverinfo == "skip" for trace in figure.data)
     assert all(trace.hovertemplate is None for trace in figure.data)
+    # Labels must not rely on bar text (Plotly drops it on stacked segments).
+    assert all(not trace.text for trace in figure.data)
 
 
 def test_distribution_shift_figure_keeps_negative_shares_visible():
@@ -55,30 +45,46 @@ def test_distribution_shift_figure_keeps_negative_shares_visible():
     data.loc[next_40, "share"] = 0.294
 
     figure = distribution_shift_figure(data)
-    negative_trace = next(
-        trace
-        for trace in figure.data
-        if trace.name == "Bottom 50%"
-        and trace.y[0] == "Conventional net worth"
-    )
+    labels = [annotation["text"] for annotation in figure.layout.annotations]
 
     assert figure.layout.xaxis.range[0] < 0
     assert figure.layout.xaxis.range[1] > 1
-    assert negative_trace.text == ("−3.4% [−$22.6B]",)
-    assert negative_trace.textposition == "outside"
+    assert "−3.4% [−$22.6B]" in labels
 
 
-def test_distribution_shift_figure_does_not_responsively_hide_eligible_top_one_label():
+def test_distribution_shift_figure_labels_eligible_top_one_segment():
     figure = distribution_shift_figure(_shift_data())
-    top_one = next(
-        trace
-        for trace in figure.data
-        if trace.name == "Top 1%"
-        and trace.y[0] == "All modeled future resources"
-    )
+    labels = [annotation["text"] for annotation in figure.layout.annotations]
 
-    assert top_one.text == ("19.0% [$0.2T]",)
-    assert figure.layout.uniformtext.mode == "show"
+    assert "19.0% [$0.2T]" in labels
+    assert any(label.startswith("35.0%") for label in labels)
+
+
+def test_narrow_top_one_segment_is_labeled_past_the_stack_edge():
+    """Age-panel Top 1% shares are often ~10–14%; in-bar text does not fit."""
+    data = _shift_data()
+    narrow = data.index[
+        (data["state"] == "All modeled future resources") & (data["group"] == "Top 1%")
+    ][0]
+    data.loc[narrow, "share"] = 0.107
+    data.loc[narrow, "weighted_total"] = 5.9e12
+    next_nine = data.index[
+        (data["state"] == "All modeled future resources") & (data["group"] == "Next 9%")
+    ][0]
+    data.loc[next_nine, "share"] = float(data.loc[next_nine, "share"]) + (0.19 - 0.107)
+
+    figure = distribution_shift_figure(data)
+    top_labels = [
+        annotation
+        for annotation in figure.layout.annotations
+        if annotation["text"] == "10.7% [$5.9T]"
+    ]
+
+    assert len(top_labels) == 1
+    # Cumulative stack ends at 1.0; outside label sits at the stack edge.
+    assert top_labels[0]["x"] == 1.0
+    assert top_labels[0]["xanchor"] == "left"
+    assert figure.layout.xaxis.range[1] > 1.0
 
 
 def _shift_data():
