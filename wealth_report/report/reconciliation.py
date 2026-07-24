@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from wealth_report.providers.sources import load_source_registry, verify_artifact
+
 DEFAULT_DB_REFERENCE = Path("data/reference/fed_z1_defined_benefit_2022.csv")
 
 
@@ -29,6 +31,10 @@ class ReconciliationResult:
 def load_official_db_total(
     *, year: int, path: str | Path = DEFAULT_DB_REFERENCE
 ) -> OfficialPensionTotal:
+    resolved_path = Path(path)
+    if resolved_path.resolve() == DEFAULT_DB_REFERENCE.resolve():
+        specification = load_source_registry()["fed_z1_db_pensions"]
+        verify_artifact(resolved_path, specification.snapshot_sha256)
     data = pd.read_csv(path)
     row = data.loc[data["year"] == year]
     if len(row) != 1:
