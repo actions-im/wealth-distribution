@@ -1,6 +1,10 @@
 import pandas as pd
 
-from wealth_report.report.charts import SHIFT_COLORS, distribution_shift_figure
+from wealth_report.report.charts import (
+    SHIFT_COLORS,
+    distribution_shift_accessible_table,
+    distribution_shift_figure,
+)
 
 
 def test_distribution_shift_figure_has_two_states_and_four_groups():
@@ -14,7 +18,17 @@ def test_distribution_shift_figure_has_two_states_and_four_groups():
     }
 
 
-def test_distribution_shift_figure_formats_static_labels_without_hover():
+def test_accessible_table_contains_every_segment_value():
+    table = distribution_shift_accessible_table(_shift_data())
+
+    assert table["Rank group"].tolist() == list(SHIFT_COLORS)
+    bottom = table.loc[table["Rank group"] == "Bottom 50%"].iloc[0]
+    assert bottom["Conventional share"] == 0.02
+    assert bottom["All modeled resources share"] == 0.10
+    assert bottom["Conventional weighted resources"] == 0.02e12
+
+
+def test_distribution_shift_figure_formats_static_labels_and_accessible_hover():
     figure = distribution_shift_figure(_shift_data())
     labels = {annotation["text"] for annotation in figure.layout.annotations}
 
@@ -24,8 +38,9 @@ def test_distribution_shift_figure_formats_static_labels_without_hover():
     assert "10.0% [$0.1T]" in labels
     # Conventional Bottom 50% is only 2% — too narrow for an in-segment label.
     assert "2.0% [$0.0T]" not in labels
-    assert all(trace.hoverinfo == "skip" for trace in figure.data)
-    assert all(trace.hovertemplate is None for trace in figure.data)
+    assert figure.layout.hovermode == "closest"
+    assert all(trace.hovertemplate for trace in figure.data)
+    assert all("Resource share" in trace.hovertemplate for trace in figure.data)
     # Labels must not rely on bar text (Plotly drops it on stacked segments).
     assert all(not trace.text for trace in figure.data)
 
