@@ -4,6 +4,8 @@ import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from scripts.reproduce_report import _fixture_households
+
 
 def test_home_uses_two_state_distribution_shift():
     app = AppTest.from_file("app.py", default_timeout=20).run(timeout=20)
@@ -89,6 +91,70 @@ def test_explicit_public_navigation_has_only_three_pages():
     assert 'st.Page("wealth_report/app/pages/age_slicing.py", title="Age slicing"' in source
     assert 'st.Page("wealth_report/app/pages/methodology.py", title="Methodology"' in source
     assert not Path("pages").exists()
+
+
+def test_assumptions_persist_when_navigating_between_pages():
+    app = AppTest.from_file("app.py", default_timeout=30).run(timeout=30)
+    discount = next(slider for slider in app.slider if slider.label == "Discount rate")
+    discount.set_value(0.05)
+    app.run(timeout=30)
+
+    app.switch_page("wealth_report/app/pages/age_slicing.py").run(timeout=30)
+
+    persisted = next(slider for slider in app.slider if slider.label == "Discount rate")
+    assert persisted.value == pytest.approx(0.05)
+
+
+def test_direct_page_rerun_keeps_assumption_widgets_live():
+    app = AppTest.from_file(
+        "wealth_report/app/pages/age_slicing.py", default_timeout=30
+    ).run(timeout=30)
+    discount = next(slider for slider in app.slider if slider.label == "Discount rate")
+    discount.set_value(0.05)
+    app.run(timeout=30)
+
+    persisted = next(slider for slider in app.slider if slider.label == "Discount rate")
+    assert persisted.value == pytest.approx(0.05)
+
+
+def test_direct_home_page_renders_without_navigation_registry(monkeypatch):
+    households = _fixture_households().assign(
+        continuation_income_security_floor=0.0,
+        continuation_expected_inheritance=0.0,
+        continuation_estate_donor_reserve=0.0,
+    )
+    monkeypatch.setattr(
+        "wealth_report.app.cache.load_comprehensive_report_data",
+        lambda **_assumptions: households,
+    )
+
+    app = AppTest.from_file(
+        "wealth_report/app/pages/home.py",
+        default_timeout=20,
+    ).run(timeout=20)
+
+    assert not app.exception
+    assert app.title[0].value == (
+        "Conventional Wealth and Comprehensive Household Resources"
+    )
+
+
+def test_point_estimate_warning_is_adjacent_on_home_and_age_pages():
+    home = AppTest.from_file("app.py", default_timeout=30).run(timeout=30)
+    age = AppTest.from_file(
+        "wealth_report/app/pages/age_slicing.py", default_timeout=30
+    ).run(timeout=30)
+
+    assert any("point estimates" in warning.value.lower() for warning in home.warning)
+    assert any("point estimates" in warning.value.lower() for warning in age.warning)
+
+
+def test_home_and_age_charts_have_accessible_data_tables():
+    home_source = Path("wealth_report/app/pages/home.py").read_text()
+    age_source = Path("wealth_report/app/pages/age_slicing.py").read_text()
+
+    assert "distribution_shift_accessible_table(shift_data)" in home_source
+    assert "distribution_shift_accessible_table(panel_data)" in age_source
 
 
 @pytest.mark.parametrize(
