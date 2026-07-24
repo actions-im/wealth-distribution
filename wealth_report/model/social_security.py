@@ -15,6 +15,8 @@ class SocialSecurityPerson:
     age: int
     annual_wage: float
     career_years: int
+    historical_annual_wage: float | None = None
+    future_annual_wage: float | None = None
     annual_reported_benefit: float = 0.0
     claiming_age: int = 67
     reported_benefit_type: str = "retirement"
@@ -56,6 +58,12 @@ def _validate_person(person: SocialSecurityPerson) -> None:
     ):
         if not math.isfinite(value) or value < 0:
             raise ValueError(f"{name} must be finite and nonnegative")
+    for value, name in (
+        (person.historical_annual_wage, "historical_annual_wage"),
+        (person.future_annual_wage, "future_annual_wage"),
+    ):
+        if value is not None and (not math.isfinite(value) or value < 0):
+            raise ValueError(f"{name} must be finite and nonnegative")
 
 
 def social_security_wealth(
@@ -83,9 +91,25 @@ def social_security_wealth(
 
     parameters = parameters_for_year(year)
     remaining_work_years = max(retirement_age - person.age, 0)
-    added_years = remaining_work_years if mode == "continuation" else 0
-    credited_years = min(person.career_years + added_years, 35)
-    covered_wage = min(person.annual_wage, parameters.taxable_maximum)
+    history_years = min(person.career_years, 35)
+    added_years = (
+        min(remaining_work_years, 35 - history_years)
+        if mode == "continuation"
+        else 0
+    )
+    credited_years = history_years + added_years
+    historical_wage = (
+        person.annual_wage
+        if person.historical_annual_wage is None
+        else person.historical_annual_wage
+    )
+    future_wage = (
+        person.annual_wage
+        if person.future_annual_wage is None
+        else person.future_annual_wage
+    )
+    historical_covered_wage = min(historical_wage, parameters.taxable_maximum)
+    future_covered_wage = min(future_wage, parameters.taxable_maximum)
 
     exclusions = ["spousal_and_survivor_benefits"]
     used_reported_benefit = (
@@ -99,7 +123,14 @@ def social_security_wealth(
     if used_reported_benefit:
         annual_benefit = person.annual_reported_benefit
     else:
-        aime = covered_wage * credited_years / 35 / 12
+        if historical_wage <= 0 and history_years > 0:
+            exclusions.append("earnings_history_unestimated")
+        elif person.annual_wage <= 0 and historical_wage > 0:
+            exclusions.append("earnings_history_former_job_proxy")
+        aime = (
+            historical_covered_wage * history_years
+            + future_covered_wage * added_years
+        ) / 35 / 12
         annual_benefit = (
             primary_insurance_amount(aime, year=year)
             * 12
@@ -120,7 +151,7 @@ def social_security_wealth(
 
     contribution_years = min(remaining_work_years, len(survival))
     future_employee_contributions = present_value_stream(
-        [covered_wage * parameters.employee_oasdi_rate] * contribution_years,
+        [future_covered_wage * parameters.employee_oasdi_rate] * contribution_years,
         discount_rate,
         survival=list(survival)[:contribution_years],
         start_period=1,
