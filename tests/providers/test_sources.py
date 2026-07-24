@@ -32,6 +32,8 @@ def test_registry_contains_required_official_sources():
             "https://www.federalreserve.gov/econres/scfindex.htm"
         )
         assert registry[key].description
+    assert registry["ssa_period_life_2019_tr2022"].snapshot_sha256
+    assert registry["fed_z1_db_pensions"].snapshot_sha256
 
 
 def test_verify_artifact_rejects_wrong_hash(tmp_path):
