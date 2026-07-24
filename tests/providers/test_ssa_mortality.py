@@ -41,3 +41,20 @@ def test_bundled_ssa_table_has_full_age_coverage_and_source_note():
     assert set(table["male"]) == set(range(120))
     assert set(table["female"]) == set(range(120))
     assert Path("data/reference/ssa_period_life_2019_tr2022.csv.source.txt").is_file()
+
+
+def test_bundled_ssa_snapshot_is_verified_before_parse(monkeypatch):
+    import wealth_report.providers.ssa.mortality as mortality
+
+    calls = []
+    monkeypatch.setattr(
+        mortality,
+        "verify_artifact",
+        lambda path, digest: calls.append((path, digest)),
+        raising=False,
+    )
+
+    load_ssa_period_life_table()
+
+    assert calls
+    assert calls[0][1]

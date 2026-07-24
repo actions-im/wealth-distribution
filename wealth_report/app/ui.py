@@ -20,6 +20,7 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         value=float(DEFAULT_ASSUMPTIONS["discount_rate"]),
         step=0.0025,
         format="%.3f",
+        key="assumption_discount_rate",
     )
     wage_growth = st.sidebar.slider(
         "Real wage growth",
@@ -28,12 +29,24 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         value=float(DEFAULT_ASSUMPTIONS["wage_growth"]),
         step=0.0025,
         format="%.3f",
+        key="assumption_wage_growth",
+    )
+    inflation_rate = st.sidebar.slider(
+        "Long-run inflation",
+        min_value=0.0,
+        max_value=0.06,
+        value=float(DEFAULT_ASSUMPTIONS["inflation_rate"]),
+        step=0.0025,
+        format="%.3f",
+        help="Used to convert fixed nominal pension payments into 2022 dollars.",
+        key="assumption_inflation_rate",
     )
     retirement_age = st.sidebar.slider(
         "Retirement age",
         55,
         75,
         int(DEFAULT_ASSUMPTIONS["retirement_age"]),
+        key="assumption_retirement_age",
     )
     employment_probability = st.sidebar.slider(
         "Employment probability",
@@ -41,6 +54,7 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         max_value=1.0,
         value=float(DEFAULT_ASSUMPTIONS["employment_probability"]),
         step=0.01,
+        key="assumption_employment_probability",
     )
     tax_rate = st.sidebar.slider(
         "Flat tax haircut",
@@ -48,6 +62,7 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         0.5,
         float(DEFAULT_ASSUMPTIONS["tax_rate"]),
         step=0.01,
+        key="assumption_tax_rate",
     )
     reentry_probability = st.sidebar.slider(
         "Non-earner re-entry probability",
@@ -55,6 +70,7 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         1.0,
         float(DEFAULT_ASSUMPTIONS["reentry_probability"]),
         step=0.05,
+        key="assumption_reentry_probability",
     )
     payable_benefit_factor = st.sidebar.slider(
         "Social Security payable factor",
@@ -62,6 +78,7 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         1.0,
         float(DEFAULT_ASSUMPTIONS["payable_benefit_factor"]),
         step=0.05,
+        key="assumption_payable_benefit_factor",
     )
     income_security_floor_monthly = st.sidebar.slider(
         "Income-security floor benchmark (monthly 2022 dollars)",
@@ -74,6 +91,7 @@ def render_assumption_sidebar() -> dict[str, float | int]:
             "Scenario benchmark calibrated to the December 2022 average SSI payment ($622). "
             "It is a modeled income top-up, not a universal entitlement or an SSI eligibility estimate."
         ),
+        key="assumption_income_security_floor_monthly",
     )
     inheritance_horizon_years = st.sidebar.slider(
         "Expected inheritance horizon (years)",
@@ -84,11 +102,13 @@ def render_assumption_sidebar() -> dict[str, float | int]:
         help=(
             "Timing scenario for discounting expected inheritances; it is not observed parent-child timing."
         ),
+        key="assumption_inheritance_horizon_years",
     )
     st.sidebar.caption(SOURCE_NOTE)
     return {
         "discount_rate": discount_rate,
         "wage_growth": wage_growth,
+        "inflation_rate": inflation_rate,
         "retirement_age": retirement_age,
         "employment_probability": employment_probability,
         "tax_rate": tax_rate,

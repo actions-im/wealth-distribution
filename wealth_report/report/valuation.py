@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
@@ -10,13 +9,14 @@ import pandas as pd
 
 from wealth_report.model.actuarial import conditional_survival
 from wealth_report.model.assumptions import ModelAssumptions
-from wealth_report.model.income_security import value_income_security_floor
+from wealth_report.model.income_security import value_state_contingent_income_security_floor
 from wealth_report.model.inheritance import allocate_inheritance_reallocation
 from wealth_report.model.labor import estimate_labor_wealth, projected_labor_income_stream
 from wealth_report.model.numeric import is_finite_numeric
 from wealth_report.model.pensions import (
     DefinedBenefitPlan,
     defined_benefit_income_stream,
+    real_growth_from_cola,
     value_defined_benefit_plan,
 )
 from wealth_report.model.social_security import (
@@ -116,6 +116,7 @@ def value_detailed_household(
         people,
         survival=survival,
         assumptions=assumptions,
+        reentry_wage_schedule=reentry_wage_schedule,
         exclusions=exclusions,
     )
     pension = _value_pensions(
@@ -242,6 +243,7 @@ def _value_social_security(
     *,
     survival: Mapping[str, list[float]],
     assumptions: ModelAssumptions,
+    reentry_wage_schedule: Mapping[tuple[str, str], float] | None,
     exclusions: set[str],
 ) -> _ComponentTotals:
     accrued = 0.0
@@ -251,10 +253,32 @@ def _value_social_security(
         if not survival[owner]:
             exclusions.add(f"social_security_missing_survival_{owner}")
             continue
-        career_years = min(max(person.age - 22, 0), 35)
+        career_years = min(
+            person.career_years
+            if person.career_years is not None
+            else max(person.age - 22, 0),
+            35,
+        )
+        future_annual_wage = person.annual_wage
+        if (
+            future_annual_wage <= 0
+            and person.age < assumptions.retirement_age
+            and reentry_wage_schedule
+        ):
+            future_annual_wage = (
+                float(
+                    reentry_wage_schedule.get(
+                        (person.sex, age_group(person.age)),
+                        0.0,
+                    )
+                )
+                * assumptions.reentry_probability
+            )
         ss_person = SocialSecurityPerson(
             age=person.age,
             annual_wage=person.annual_wage,
+            historical_annual_wage=person.historical_annual_wage,
+            future_annual_wage=future_annual_wage,
             annual_reported_benefit=person.annual_social_security,
             reported_benefit_type=person.social_security_benefit_type,
             career_years=career_years,
@@ -310,7 +334,13 @@ def _value_pensions(
             current_age=person.age,
             claiming_age=pension.claiming_age,
             accrued_fraction=min(max(accrued_fraction, 0), 1),
+            real_cola=real_growth_from_cola(
+                pension.has_cost_of_living_adjustment,
+                inflation_rate=assumptions.inflation_rate,
+            ),
         )
+        if pension.has_cost_of_living_adjustment is None:
+            exclusions.add("pension_cola_unreported_assumed_fixed_nominal")
         for mode in ("accrued", "continuation"):
             result = value_defined_benefit_plan(
                 plan,
@@ -343,29 +373,19 @@ def _value_income_floor(
     assumptions: ModelAssumptions,
 ) -> float:
     horizon = max((len(values) for values in survival.values()), default=0)
-    annual_other_income = [0.0] * horizon
-    household_survival = [0.0] * horizon
-    for period in range(horizon):
-        survival_values = [
-            curve[period] for curve in survival.values() if period < len(curve)
-        ]
-        household_survival[period] = (
-            1 - math.prod(1 - value for value in survival_values)
-            if survival_values
-            else 0.0
-        )
-        for owner, _ in people:
+    income_by_adult = {owner: [0.0] * horizon for owner, _ in people}
+    for owner, _ in people:
+        for period in range(horizon):
             if period < len(labor_streams.get(owner, [])):
-                annual_other_income[period] += labor_streams[owner][period]
+                income_by_adult[owner][period] += labor_streams[owner][period]
             if period < len(social_streams.get(owner, [])):
-                annual_other_income[period] += social_streams[owner][period]
+                income_by_adult[owner][period] += social_streams[owner][period]
             for stream in pension_streams.get(owner, []):
                 if period < len(stream):
-                    annual_other_income[period] += stream[period]
-    return value_income_security_floor(
-        other_income=annual_other_income,
+                    income_by_adult[owner][period] += stream[period]
+    return value_state_contingent_income_security_floor(
+        income_by_adult=income_by_adult,
+        survival_by_adult=survival,
         monthly_benchmark=assumptions.income_security_floor_monthly,
-        adult_count=len(people),
-        survival=household_survival,
         discount_rate=assumptions.discount_rate,
     )

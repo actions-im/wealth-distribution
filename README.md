@@ -25,12 +25,13 @@ On first use, the app downloads the hash-pinned Federal Reserve 2022 SCF summary
 
 ```bash
 uv run pytest -q
-uvx ruff check app.py wealth_report scripts tests
+uv run ruff check app.py wealth_report scripts tests
 uv run python -m compileall -q app.py wealth_report scripts tests
 uv run python scripts/reproduce_report.py --real-data --output-dir build/report
 ```
 
 The real-data export writes the Home comparison, Age slicing data, component totals, rank detail, reconciliation, scenario controls, and source-integrity manifest. Use `--fixture` only to check the output contract; it is not an empirical result.
+An existing nonempty output directory is replaced only when its marker, schema, file inventory, sizes, and hashes identify a prior report bundle; otherwise the exporter stops without modifying it.
 
 ## Audit trail
 

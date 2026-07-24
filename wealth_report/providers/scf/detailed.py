@@ -28,11 +28,36 @@ RESPONDENT_WAGE_WEEKS = "x4111"
 RESPONDENT_WAGE_AMOUNT = "x4112"
 RESPONDENT_WAGE_FREQUENCY = "x4113"
 
+# Respondent second-job wage and nonworker former-job history
+RESPONDENT_SECOND_WAGE_HOURS = "x4507"
+RESPONDENT_SECOND_WAGE_WEEKS = "x4508"
+RESPONDENT_SECOND_WAGE_AMOUNT = "x4509"
+RESPONDENT_SECOND_WAGE_FREQUENCY = "x4510"
+RESPONDENT_HISTORY_WAGE_FIELDS = (
+    ("x4613", "x4614"),
+    ("x4605", "x4606"),
+)
+RESPONDENT_CAREER_YEAR_FIELDS = (
+    ("x4602", "x4616"),
+)
+
 # Spouse main-job wage
 SPOUSE_WAGE_HOURS = "x4710"
 SPOUSE_WAGE_WEEKS = "x4711"
 SPOUSE_WAGE_AMOUNT = "x4712"
 SPOUSE_WAGE_FREQUENCY = "x4713"
+
+SPOUSE_SECOND_WAGE_HOURS = "x5107"
+SPOUSE_SECOND_WAGE_WEEKS = "x5108"
+SPOUSE_SECOND_WAGE_AMOUNT = "x5109"
+SPOUSE_SECOND_WAGE_FREQUENCY = "x5110"
+SPOUSE_HISTORY_WAGE_FIELDS = (
+    ("x5213", "x5214"),
+    ("x5205", "x5206"),
+)
+SPOUSE_CAREER_YEAR_FIELDS = (
+    ("x5202", "x5216"),
+)
 
 # Current Social Security: type, amount, frequency (respondent / spouse)
 RESPONDENT_SS_TYPE = "x5304"
@@ -69,10 +94,22 @@ DETAILED_COLUMNS = [
     RESPONDENT_WAGE_WEEKS,
     RESPONDENT_WAGE_AMOUNT,
     RESPONDENT_WAGE_FREQUENCY,
+    RESPONDENT_SECOND_WAGE_HOURS,
+    RESPONDENT_SECOND_WAGE_WEEKS,
+    RESPONDENT_SECOND_WAGE_AMOUNT,
+    RESPONDENT_SECOND_WAGE_FREQUENCY,
+    *(field for pair in RESPONDENT_HISTORY_WAGE_FIELDS for field in pair),
+    *(field for pair in RESPONDENT_CAREER_YEAR_FIELDS for field in pair),
     SPOUSE_WAGE_HOURS,
     SPOUSE_WAGE_WEEKS,
     SPOUSE_WAGE_AMOUNT,
     SPOUSE_WAGE_FREQUENCY,
+    SPOUSE_SECOND_WAGE_HOURS,
+    SPOUSE_SECOND_WAGE_WEEKS,
+    SPOUSE_SECOND_WAGE_AMOUNT,
+    SPOUSE_SECOND_WAGE_FREQUENCY,
+    *(field for pair in SPOUSE_HISTORY_WAGE_FIELDS for field in pair),
+    *(field for pair in SPOUSE_CAREER_YEAR_FIELDS for field in pair),
     RESPONDENT_SS_TYPE,
     RESPONDENT_SS_AMOUNT,
     RESPONDENT_SS_FREQUENCY,
@@ -106,21 +143,25 @@ DETAILED_COLUMNS = [
     "x5317",
     "x5318",
     "x5319",
+    "x5320",
     "x6466",
     "x5323",
     "x5325",
     "x5326",
     "x5327",
+    "x5328",
     "x6471",
     "x5331",
     "x5333",
     "x5334",
     "x5335",
+    "x5336",
     "x6476",
     "x5415",
     "x5417",
     "x5418",
     "x5419",
+    "x5420",
     EXPECTS_INHERITANCE,
     EXPECTED_INHERITANCE_AMOUNT,
     EXPECTS_SIZABLE_ESTATE,
@@ -143,6 +184,8 @@ class PersonInput:
     annual_wage: float
     annual_social_security: float
     social_security_benefit_type: str = "none"
+    historical_annual_wage: float | None = None
+    career_years: int | None = None
 
 
 @dataclass(frozen=True)
@@ -151,6 +194,7 @@ class PensionBenefitInput:
     annual_benefit: float
     claiming_age: int
     status: str
+    has_cost_of_living_adjustment: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -211,40 +255,78 @@ def build_detailed_household_input(row: Mapping[str, object]) -> DetailedHouseho
     family_id = int(as_number(values.get(FAMILY_ID))) or row_id // 10
     implicate = row_id % 10 if row_id else 0
 
+    respondent_wage = _total_current_wage(
+        values,
+        main_fields=(
+            RESPONDENT_WAGE_AMOUNT,
+            RESPONDENT_WAGE_FREQUENCY,
+            RESPONDENT_WAGE_HOURS,
+            RESPONDENT_WAGE_WEEKS,
+        ),
+        second_fields=(
+            RESPONDENT_SECOND_WAGE_AMOUNT,
+            RESPONDENT_SECOND_WAGE_FREQUENCY,
+            RESPONDENT_SECOND_WAGE_HOURS,
+            RESPONDENT_SECOND_WAGE_WEEKS,
+        ),
+    )
+    respondent_career_years = _reported_career_years(
+        values, RESPONDENT_CAREER_YEAR_FIELDS
+    )
     respondent = PersonInput(
         age=int(as_number(values.get(RESPONDENT_AGE))),
         sex=_sex(values.get(RESPONDENT_SEX)),
-        annual_wage=annualize_wage(
-            values.get(RESPONDENT_WAGE_AMOUNT),
-            values.get(RESPONDENT_WAGE_FREQUENCY),
-            values.get(RESPONDENT_WAGE_HOURS),
-            values.get(RESPONDENT_WAGE_WEEKS),
-        ),
+        annual_wage=respondent_wage,
         annual_social_security=annualize(
             values.get(RESPONDENT_SS_AMOUNT), values.get(RESPONDENT_SS_FREQUENCY)
         ),
         social_security_benefit_type=_social_security_benefit_type(
             values.get(RESPONDENT_SS_TYPE)
         ),
+        historical_annual_wage=(
+            None
+            if respondent_wage > 0 or respondent_career_years is None
+            else _historical_annual_wage(values, RESPONDENT_HISTORY_WAGE_FIELDS)
+        ),
+        career_years=respondent_career_years,
     )
     spouse_age = int(as_number(values.get(SPOUSE_AGE)))
     spouse = None
     if spouse_age > 0:
+        spouse_wage = _total_current_wage(
+            values,
+            main_fields=(
+                SPOUSE_WAGE_AMOUNT,
+                SPOUSE_WAGE_FREQUENCY,
+                SPOUSE_WAGE_HOURS,
+                SPOUSE_WAGE_WEEKS,
+            ),
+            second_fields=(
+                SPOUSE_SECOND_WAGE_AMOUNT,
+                SPOUSE_SECOND_WAGE_FREQUENCY,
+                SPOUSE_SECOND_WAGE_HOURS,
+                SPOUSE_SECOND_WAGE_WEEKS,
+            ),
+        )
+        spouse_career_years = _reported_career_years(
+            values, SPOUSE_CAREER_YEAR_FIELDS
+        )
         spouse = PersonInput(
             age=spouse_age,
             sex=_sex(values.get(SPOUSE_SEX)),
-            annual_wage=annualize_wage(
-                values.get(SPOUSE_WAGE_AMOUNT),
-                values.get(SPOUSE_WAGE_FREQUENCY),
-                values.get(SPOUSE_WAGE_HOURS),
-                values.get(SPOUSE_WAGE_WEEKS),
-            ),
+            annual_wage=spouse_wage,
             annual_social_security=annualize(
                 values.get(SPOUSE_SS_AMOUNT), values.get(SPOUSE_SS_FREQUENCY)
             ),
             social_security_benefit_type=_social_security_benefit_type(
                 values.get(SPOUSE_SS_TYPE)
             ),
+            historical_annual_wage=(
+                None
+                if spouse_wage > 0 or spouse_career_years is None
+                else _historical_annual_wage(values, SPOUSE_HISTORY_WAGE_FIELDS)
+            ),
+            career_years=spouse_career_years,
         )
 
     pensions = _future_db_pensions(values) + _current_db_pensions(values, respondent, spouse)
@@ -264,6 +346,46 @@ def build_detailed_household_input(row: Mapping[str, object]) -> DetailedHouseho
         expected_inheritance_amount=expected_inheritance_amount,
         expects_sizable_estate=_is_affirmative_scf_code(values.get(EXPECTS_SIZABLE_ESTATE)),
     )
+
+
+def _total_current_wage(
+    values: Mapping[str, object],
+    *,
+    main_fields: tuple[str, str, str, str],
+    second_fields: tuple[str, str, str, str],
+) -> float:
+    return sum(
+        annualize_wage(
+            values.get(amount),
+            values.get(frequency),
+            values.get(hours),
+            values.get(weeks),
+        )
+        for amount, frequency, hours, weeks in (main_fields, second_fields)
+    )
+
+
+def _historical_annual_wage(
+    values: Mapping[str, object],
+    fields: tuple[tuple[str, str], ...],
+) -> float | None:
+    for amount, frequency in fields:
+        annual_wage = annualize(values.get(amount), values.get(frequency))
+        if annual_wage > 0:
+            return annual_wage
+    return None
+
+
+def _reported_career_years(
+    values: Mapping[str, object],
+    fields: tuple[tuple[str, str], ...],
+) -> int | None:
+    branch_years = [
+        sum(max(int(as_number(values.get(field))), 0) for field in branch)
+        for branch in fields
+    ]
+    reported = max(branch_years, default=0)
+    return reported if reported > 0 else None
 
 
 def _future_db_pensions(values: Mapping[str, object]) -> list[PensionBenefitInput]:
@@ -297,13 +419,13 @@ def _current_db_pensions(
     spouse: PersonInput | None,
 ) -> list[PensionBenefitInput]:
     fields = [
-        ("x6461", "x5315", "x5317", "x5318", "x5319"),
-        ("x6466", "x5323", "x5325", "x5326", "x5327"),
-        ("x6471", "x5331", "x5333", "x5334", "x5335"),
-        ("x6476", "x5415", "x5417", "x5418", "x5419"),
+        ("x6461", "x5315", "x5317", "x5318", "x5319", "x5320"),
+        ("x6466", "x5323", "x5325", "x5326", "x5327", "x5328"),
+        ("x6471", "x5331", "x5333", "x5334", "x5335", "x5336"),
+        ("x6476", "x5415", "x5417", "x5418", "x5419", "x5420"),
     ]
     pensions = []
-    for account_plan, owner_field, years_field, amount, frequency in fields:
+    for account_plan, owner_field, years_field, amount, frequency, cola in fields:
         if int(as_number(values.get(account_plan))) != 5:
             continue
         annual_benefit = annualize(values.get(amount), values.get(frequency))
@@ -317,6 +439,7 @@ def _current_db_pensions(
                     annual_benefit=annual_benefit,
                     claiming_age=max(person.age - years_receiving, 0),
                     status="current",
+                    has_cost_of_living_adjustment=_cola_status(values.get(cola)),
                 )
             )
     return pensions
@@ -355,3 +478,12 @@ def _social_security_benefit_type(value: object) -> str:
 
 def _owner(value: object) -> str:
     return "spouse" if int(as_number(value)) == 2 else "respondent"
+
+
+def _cola_status(value: object) -> bool | None:
+    code = int(as_number(value))
+    if code == 1:
+        return True
+    if code == 5:
+        return False
+    return None

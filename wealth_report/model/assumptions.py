@@ -16,6 +16,7 @@ class ModelAssumptions:
 
     discount_rate: float = 0.035
     wage_growth: float = 0.015
+    inflation_rate: float = 0.02
     retirement_age: int = 67
     employment_probability: float = 0.95
     reentry_probability: float = 0.25
@@ -23,13 +24,15 @@ class ModelAssumptions:
     payable_benefit_factor: float = 0.80
     income_security_floor_monthly: float = 622.0
     inheritance_horizon_years: int = 15
-    version: str = "2022-baseline-v1"
+    version: str = "2022-baseline-v2"
 
     def __post_init__(self) -> None:
         if not math.isfinite(self.discount_rate) or self.discount_rate <= -1:
             raise ValueError("discount_rate must be finite and greater than -1")
         if not math.isfinite(self.wage_growth) or self.wage_growth <= -1:
             raise ValueError("wage_growth must be finite and greater than -1")
+        if not math.isfinite(self.inflation_rate) or self.inflation_rate < 0:
+            raise ValueError("inflation_rate must be finite and nonnegative")
         if not 18 <= self.retirement_age <= 100:
             raise ValueError("retirement_age must be between 18 and 100")
         for name in (

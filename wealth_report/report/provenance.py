@@ -19,9 +19,14 @@ COMPUTED_SCF_SOURCE = (
 SUMMARY_NET_WORTH_FIELDS = "Summary SCF rscfp2022.dta: NETWORTH, WGT"
 FULL_MODEL_SOURCE_FIELDS = (
     "Summary SCF rscfp2022.dta: NETWORTH, WGT; Full SCF p22i6.dta: respondent/spouse "
-    "demographics; wage amount, frequency, hours, and weeks (X4110–X4113; X4710–X4713); "
+    "demographics; main- and second-job wage amount, frequency, hours, and weeks "
+    "(X4110–X4113, X4507–X4510; X4710–X4713, X5107–X5110); former-job earnings "
+    "and reported nonworker work-history duration fields "
+    "(X4602, X4605, X4606, X4613, X4614, X4616; "
+    "X5202, X5205, X5206, X5213, X5214, X5216); "
     "current Social Security payment, frequency, and benefit type (X5304, X5306, X5307, X5309, "
-    "X5311, X5312); DB pension fields; and inheritance fields X5819, X5821, X5825; SSA mortality "
+    "X5311, X5312); DB pension fields including current-benefit COLA status; and inheritance "
+    "fields X5819, X5821, X5825; SSA mortality "
     "and 2022 program parameters; SSI average-payment benchmark"
 )
 FULL_MODEL_SOURCE_KEYS = (
@@ -31,7 +36,9 @@ FULL_MODEL_SOURCE_KEYS = (
 AGE_PANEL_SOURCE_FIELDS = (
     "Summary SCF rscfp2022.dta: NETWORTH, WGT, AGE; Full SCF p22i6.dta: "
     "X5819, X5821, X5825; respondent/spouse wage amounts, frequencies, hours, "
-    "and weeks (X4110–X4113; X4710–X4713); current Social Security payment, "
+    "and weeks for main and second jobs; former-job earnings and nonworker work-history "
+    "duration fields X4602–X4616 and X5202–X5216; "
+    "current Social Security payment, "
     "frequency, and benefit type (X5304, X5306, X5307, X5309, X5311, X5312); "
     "DB pension benefit fields; SSA mortality and 2022 program parameters"
 )
@@ -220,8 +227,9 @@ def _component_specs(assumptions: Mapping[str, float | int]) -> list[dict[str, o
             ),
             "Source fields": (
                 "Full SCF p22i6.dta: respondent age X14, sex X8021, wage amount/frequency "
-                "X4112/X4113, hours/weeks X4110/X4111; spouse age X19, sex X103, wage "
-                "amount/frequency X4712/X4713, hours/weeks X4710/X4711"
+                "X4112/X4113, hours/weeks X4110/X4111, second job X4507–X4510; spouse age "
+                "X19, sex X103, wage amount/frequency X4712/X4713, hours/weeks X4710/X4711, "
+                "second job X5107–X5110"
             ),
             "Current assumptions": (
                 f"discount={assumptions['discount_rate']:.3f}; "
@@ -244,9 +252,12 @@ def _component_specs(assumptions: Mapping[str, float | int]) -> list[dict[str, o
                 "AIME/PIA proxy, less PV of future employee OASDI contributions"
             ),
             "Source fields": (
-                "Full SCF p22i6.dta: respondent/spouse wage fields, ages, sex, reported current "
-                "Social Security payment/frequency X5306/X5307 and X5311/X5312, and reported "
-                "benefit types X5304/X5309; SSA bend points, taxable maximum, employee rate, and mortality"
+                "Full SCF p22i6.dta: respondent/spouse wage, nonworker former-job earnings, "
+                "and reported work-history duration fields X4602, X4605, X4606, X4613, "
+                "X4614, X4616, X5202, X5205, X5206, X5213, X5214, X5216, "
+                "ages, sex, reported current Social Security payment/frequency X5306/X5307 and "
+                "X5311/X5312, and reported benefit types X5304/X5309; SSA bend points, taxable "
+                "maximum, employee rate, and mortality"
             ),
             "Current assumptions": (
                 f"payable factor={assumptions['payable_benefit_factor']:.2f}; "
@@ -259,7 +270,9 @@ def _component_specs(assumptions: Mapping[str, float | int]) -> list[dict[str, o
             "Important treatment": (
                 "Only reported retired-worker payments are used as current benefits. Reported SSI, "
                 "disability, survivor/dependent, and unclassified payments are excluded from that "
-                "retired-worker flow; unsupported spousal and survivor benefits are not imputed."
+                "retired-worker flow; unsupported spousal and survivor benefits are not imputed. "
+                "Reported former-job earnings and duration proxy current non-earners' history where usable; otherwise "
+                "history is marked unestimated. Re-entry wages affect future covered earnings only."
             ),
         },
         {
@@ -269,20 +282,26 @@ def _component_specs(assumptions: Mapping[str, float | int]) -> list[dict[str, o
                 "from the reported claiming age"
             ),
             "Source fields": (
-                "Full SCF plan type, owner, annual benefit, frequency, claiming age, and status"
+                "Full SCF plan type, owner, annual benefit, frequency, claiming age, status, and "
+                "current-benefit COLA fields X5320/X5328/X5336/X5420"
             ),
-            "Current assumptions": f"discount={assumptions['discount_rate']:.3f}",
+            "Current assumptions": (
+                f"discount={assumptions['discount_rate']:.3f}; "
+                f"long-run inflation={assumptions['inflation_rate']:.3f}"
+            ),
             "Source keys": "scf_full; ssa_period_life_2019_tr2022; fed_z1_db_pensions",
             "Important treatment": (
-                "Defined-contribution/account balances already in NETWORTH are never added again."
+                "Defined-contribution/account balances already in NETWORTH are never added again. "
+                "Reported COLA preserves real payments; no or unknown COLA is fixed nominal and "
+                "loses real value during any deferral as well as retirement."
             ),
         },
         {
             "Component": "Income-security floor",
             "Calculation": (
-                "For each future year, max(0, monthly benchmark × 12 × adult scaling "
-                "− expected labor cash income − Social Security cash benefit − DB pension cash benefit); "
-                "then survival-weight and discount the top-up stream"
+                "For each future year and mutually exclusive adult-survival state, probability(state) × "
+                "max(0, monthly benchmark × 12 × surviving-adult scaling − surviving adults' labor, "
+                "Social Security, and DB pension cash income); then discount the expected top-up stream"
             ),
             "Source fields": (
                 "Full SCF respondent/spouse count, age, sex, wages, reported Social Security, and DB plans"
@@ -294,8 +313,8 @@ def _component_specs(assumptions: Mapping[str, float | int]) -> list[dict[str, o
             "Source keys": "scf_full; ssa_period_life_2019_tr2022; ssa_2022_ssi",
             "Important treatment": (
                 "Scenario benchmark calibrated to the December 2022 average SSI payment; it is not an "
-                "eligibility determination, entitlement, or transferable asset. For couples, survival of "
-                "at least one adult uses an independence approximation."
+                "eligibility determination, entitlement, or transferable asset. Couple-state probabilities "
+                "use an independent-mortality approximation."
             ),
         },
         {

@@ -43,7 +43,8 @@
     "vintage": "2019 observed period life table published with the 2022 Trustees Report",
     "filename": "ssa_period_life_2019_tr2022.csv",
     "archive_member": null,
-    "sha256": null
+    "sha256": null,
+    "snapshot_sha256": "faa84f71d515fbb1565d6454ebcbb1562e6545eab1b94f562ddc809e057013ca"
   },
   "ssa_2022_parameters": {
     "provider": "Social Security Administration",
@@ -75,6 +76,7 @@
     "vintage": "2025-09-11 Z.1 release, table L.117 with revised 2022 values",
     "filename": "fed_z1_l117_20250911.html",
     "archive_member": null,
-    "sha256": null
+    "sha256": null,
+    "snapshot_sha256": "1464049a4afe239d0da51dcc0f11b4b6e72c06714c9d2d475ee0be0d3e4eb331"
   }
 }

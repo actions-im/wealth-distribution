@@ -10,6 +10,7 @@ from wealth_report.report.builder import (
     build_ranked_distributions,
     value_detailed_household,
 )
+from wealth_report.report.valuation import _value_income_floor
 
 
 def test_comprehensive_resources_equal_documented_components():
@@ -174,6 +175,12 @@ def test_model_assumptions_reject_nonpositive_real_discount_factor():
         ModelAssumptions(discount_rate=-1)
 
 
+@pytest.mark.parametrize("value", [-0.01, float("inf"), float("nan")])
+def test_model_assumptions_reject_invalid_inflation_rate(value):
+    with pytest.raises(ValueError, match="inflation_rate"):
+        ModelAssumptions(inflation_rate=value)
+
+
 def test_inheritance_horizon_is_validated():
     assert ModelAssumptions(inheritance_horizon_years=15).inheritance_horizon_years == 15
 
@@ -261,6 +268,35 @@ def test_high_income_stream_does_not_receive_income_security_top_up():
     )
 
     assert value.continuation_income_security_floor == 0
+
+
+def test_two_adult_income_floor_values_each_survival_state_separately():
+    people = [
+        (
+            "respondent",
+            PersonInput(age=60, sex="female", annual_wage=0, annual_social_security=0),
+        ),
+        (
+            "spouse",
+            PersonInput(age=60, sex="male", annual_wage=0, annual_social_security=0),
+        ),
+    ]
+
+    value = _value_income_floor(
+        people=people,
+        survival={"respondent": [1.0], "spouse": [0.5]},
+        labor_streams={"respondent": [1_000.0], "spouse": [0.0]},
+        social_streams={},
+        pension_streams={},
+        assumptions=ModelAssumptions(
+            discount_rate=0,
+            income_security_floor_monthly=100,
+        ),
+    )
+
+    # Both alive: 50% × max(0, $1,800 − $1,000) = $400.
+    # Respondent only: 50% × max(0, $1,200 − $1,000) = $100.
+    assert value == pytest.approx(500)
 
 
 def _life_table():

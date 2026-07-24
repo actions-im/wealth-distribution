@@ -4,7 +4,10 @@ import streamlit as st
 
 from wealth_report.app.bootstrap import load_page_report
 from wealth_report.app.ui import methodology_expander
-from wealth_report.report.charts import distribution_shift_figure
+from wealth_report.report.charts import (
+    distribution_shift_accessible_table,
+    distribution_shift_figure,
+)
 from wealth_report.report.distribution import (
     AGE_SHIFT_BUCKETS,
     build_age_distribution_shift_data,
@@ -55,6 +58,11 @@ def main() -> None:
         "labor earnings, Social Security, defined-benefit pensions, and a modeled income-security floor, subject "
         "to the active assumptions, plus the constrained aggregate inheritance reallocation described above."
     )
+    st.warning(
+        "These age panels are model-based point estimates. SCF sampling and imputation uncertainty are "
+        "not shown; smaller age groups are especially sensitive to sampling variation.",
+        icon=":material/warning:",
+    )
 
     age_columns = st.columns(2)
     for index, age_bucket in enumerate(AGE_SHIFT_BUCKETS):
@@ -70,6 +78,25 @@ def main() -> None:
                     f"{dollars_trillions(float(first_row['all_resources_total']))} all modeled resources"
                 )
                 st.plotly_chart(distribution_shift_figure(panel_data), width="stretch")
+                st.dataframe(
+                    distribution_shift_accessible_table(panel_data),
+                    hide_index=True,
+                    width="stretch",
+                    column_config={
+                        "Conventional share": st.column_config.NumberColumn(
+                            format="percent"
+                        ),
+                        "Conventional weighted resources": st.column_config.NumberColumn(
+                            format="dollar"
+                        ),
+                        "All modeled resources share": st.column_config.NumberColumn(
+                            format="percent"
+                        ),
+                        "All modeled weighted resources": st.column_config.NumberColumn(
+                            format="dollar"
+                        ),
+                    },
+                )
 
     st.caption(chart_source_caption())
     methodology_expander()

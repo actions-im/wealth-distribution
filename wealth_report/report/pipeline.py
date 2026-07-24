@@ -5,6 +5,7 @@ from __future__ import annotations
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from functools import lru_cache
+import logging
 import math
 import multiprocessing as mp
 import os
@@ -26,13 +27,20 @@ from wealth_report.providers.scf.summary import (
     load_scf_extract,
     normalize_scf_rows,
 )
-from wealth_report.providers.sources import download_artifact, load_source_registry
+from wealth_report.providers.sources import (
+    download_artifact,
+    load_source_registry,
+    verify_artifact,
+)
 from wealth_report.providers.ssa.mortality import load_ssa_period_life_table
 from wealth_report.report.ranking import age_group
 from wealth_report.report.valuation import (
     apply_inheritance_reallocation,
     value_detailed_household,
 )
+
+logger = logging.getLogger(__name__)
+DEFAULT_MAX_WORKERS = 2
 
 
 @dataclass(frozen=True)
@@ -94,6 +102,10 @@ def _load_scf_household_bundle_cached(raw_dir: str) -> ScfHouseholdBundle:
     full_path = root / "scf_2022_full.zip"
     if not full_path.exists():
         full_path, _ = download_artifact(load_source_registry()["scf_full"], root)
+
+    registry = load_source_registry()
+    verify_artifact(summary_path, registry["scf_summary"].sha256)
+    verify_artifact(full_path, registry["scf_full"].sha256)
 
     summary = normalize_scf_rows(load_scf_extract(summary_path)).set_index("scf_row_id")
     detailed = load_detailed_scf(full_path)
@@ -180,9 +192,17 @@ def value_scf_household_bundle(
 def _resolve_workers(workers: int | None, *, household_count: int) -> int:
     if workers is not None:
         return max(1, int(workers))
-    # Prefer multi-core for interactive revaluation; leave one core free.
+    # Keep the interactive default within the publication host's two-core ceiling.
+    # Explicit worker counts remain available for larger development and CI hosts.
     cpu = os.cpu_count() or 2
-    return max(1, min(cpu - 1 if cpu > 2 else cpu, 8, household_count))
+    return max(
+        1,
+        min(
+            cpu - 1 if cpu > 2 else cpu,
+            DEFAULT_MAX_WORKERS,
+            household_count,
+        ),
+    )
 
 
 def _value_prepared_parallel(
@@ -217,9 +237,20 @@ def _value_prepared_parallel(
     # Page modules must not call main() in non-MainProcess workers.
     context = mp.get_context("spawn")
     rows: list[dict[str, object]] = []
-    with ProcessPoolExecutor(max_workers=workers, mp_context=context) as pool:
-        for chunk_rows in pool.map(_value_prepared_chunk, payloads, chunksize=1):
-            rows.extend(chunk_rows)
+    try:
+        with ProcessPoolExecutor(max_workers=workers, mp_context=context) as pool:
+            for chunk_rows in pool.map(_value_prepared_chunk, payloads, chunksize=1):
+                rows.extend(chunk_rows)
+    except PermissionError:
+        logger.warning("process pool unavailable; falling back to serial valuation")
+        return _value_prepared_chunk(
+            (
+                list(prepared),
+                life_table,
+                assumptions,
+                reentry_wage_schedule,
+            )
+        )
     return rows
 
 

@@ -24,7 +24,7 @@ class ComprehensiveHouseholdInput:
     continuation_estate_donor_reserve: float = 0.0
     exclusions: tuple[str, ...] = ()
     source_version: str = "scf-2022"
-    assumption_version: str = "2022-baseline-v1"
+    assumption_version: str = "2022-baseline-v2"
 
 
 @dataclass(frozen=True)
