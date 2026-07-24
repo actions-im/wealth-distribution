@@ -1,9 +1,76 @@
+import pytest
+
 from wealth_report.model.pensions import (
     DefinedBenefitPlan,
     defined_benefit_wealth,
     defined_benefit_income_stream,
+    real_growth_from_cola,
     value_defined_benefit_plan,
 )
+
+
+def test_reported_cola_preserves_real_benefit_while_fixed_nominal_benefit_declines():
+    assert real_growth_from_cola(True, inflation_rate=0.02) == 0
+    assert real_growth_from_cola(False, inflation_rate=0.02) == pytest.approx(
+        1 / 1.02 - 1
+    )
+    assert real_growth_from_cola(None, inflation_rate=0.02) == pytest.approx(
+        1 / 1.02 - 1
+    )
+
+
+def test_fixed_nominal_db_has_lower_real_value_than_reported_cola_plan():
+    cola_plan = DefinedBenefitPlan(
+        annual_benefit=20_000,
+        current_age=65,
+        claiming_age=65,
+        real_cola=real_growth_from_cola(True, inflation_rate=0.02),
+    )
+    nominal_plan = DefinedBenefitPlan(
+        annual_benefit=20_000,
+        current_age=65,
+        claiming_age=65,
+        real_cola=real_growth_from_cola(False, inflation_rate=0.02),
+    )
+
+    cola = value_defined_benefit_plan(
+        cola_plan, mode="continuation", survival=[1] * 30, discount_rate=0.03
+    )
+    nominal = value_defined_benefit_plan(
+        nominal_plan, mode="continuation", survival=[1] * 30, discount_rate=0.03
+    )
+
+    assert nominal.present_value < cola.present_value
+
+
+def test_db_income_stream_applies_real_cola_after_benefits_start():
+    plan = DefinedBenefitPlan(
+        annual_benefit=12_000,
+        current_age=64,
+        claiming_age=66,
+        real_cola=1 / 1.02 - 1,
+    )
+
+    stream = defined_benefit_income_stream(plan, mode="continuation", years=4)
+
+    assert stream[0] == 0
+    assert stream[1] == pytest.approx(12_000 / 1.02**2)
+    assert stream[2] == pytest.approx(12_000 / 1.02**3)
+    assert stream[3] == pytest.approx(12_000 / 1.02**4)
+
+
+def test_deferred_fixed_nominal_benefit_erodes_before_claiming():
+    value = defined_benefit_wealth(
+        annual_benefit=12_000,
+        current_age=55,
+        claiming_age=65,
+        survival=[1] * 30,
+        discount_rate=0,
+        real_cola=1 / 1.02 - 1,
+    )
+
+    expected = sum(12_000 / 1.02**period for period in range(10, 31))
+    assert value == pytest.approx(expected)
 
 
 def test_db_annuity_is_survival_weighted_from_claiming_age():
