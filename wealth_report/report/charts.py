@@ -28,6 +28,29 @@ TOP_ONE_INSIDE_MIN_SHARE = 0.18
 OUTSIDE_LABEL_AXIS_PAD = 0.18
 
 
+def distribution_shift_accessible_table(data: pd.DataFrame) -> pd.DataFrame:
+    """Return a compact text alternative containing every chart segment value."""
+    rows: list[dict[str, float | str]] = []
+    for group in SHIFT_GROUP_ORDER:
+        selected = data.loc[data["group"] == group].set_index("state")
+        if set(selected.index) != set(SHIFT_STATES) or len(selected) != len(SHIFT_STATES):
+            raise ValueError(f"expected one row per state for {group}")
+        conventional = selected.loc[SHIFT_STATES[0]]
+        modeled = selected.loc[SHIFT_STATES[1]]
+        rows.append(
+            {
+                "Rank group": group,
+                "Conventional share": float(conventional["share"]),
+                "Conventional weighted resources": float(
+                    conventional["weighted_total"]
+                ),
+                "All modeled resources share": float(modeled["share"]),
+                "All modeled weighted resources": float(modeled["weighted_total"]),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
     """Show two independently ranked resource distributions as paired signed bars.
 
@@ -67,7 +90,21 @@ def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
                 marker={"color": color, "line": {"color": "#FFFFFF", "width": 1.5}},
                 # Labels are annotations; keep bar text empty so Plotly cannot hide them.
                 text=None,
-                hoverinfo="skip",
+                customdata=[
+                    [
+                        str(group),
+                        float(row["weighted_total"]),
+                        float(row["household_share"]),
+                        str(row["rank_basis"]),
+                    ]
+                ],
+                hovertemplate=(
+                    "<b>%{customdata[0]}</b><br>"
+                    "Resource share: %{x:.1%}<br>"
+                    "Weighted resources: $%{customdata[1]:,.0f}<br>"
+                    "Weighted family share: %{customdata[2]:.1%}<br>"
+                    "Rank basis: %{customdata[3]}<extra></extra>"
+                ),
             )
 
     annotations, needs_outside_pad = _segment_annotations(data)
@@ -80,7 +117,7 @@ def distribution_shift_figure(data: pd.DataFrame) -> go.Figure:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         hoverlabel={"bgcolor": "#FFFFFF", "font": {"color": "#172121"}},
-        hovermode=False,
+        hovermode="closest",
         annotations=annotations,
         legend={
             "orientation": "h",
