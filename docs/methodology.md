@@ -62,7 +62,7 @@ max(0, monthly benchmark × 12 × adult scaling
        − expected labor cash income − Social Security cash benefit − DB pension cash benefit)
 ```
 
-The stream is survival weighted and discounted using the same real discount rate. The default benchmark is $622 per month in 2022 dollars: the December 2022 average SSI payment, used only as an externally observable calibration point. Two-adult families use a 1.5× benchmark scale. The model does not determine SSI or any other program eligibility, does not count a legal entitlement, and does not model children, state programs, assets tests, housing assistance, or benefit interactions. For two-adult households, the probability that at least one adult survives is calculated under an independence approximation.
+The model enumerates the mutually exclusive both-alive, respondent-only, and spouse-only states for two-adult households. Each state uses its own probability, surviving adults' income, and one- or two-adult benchmark; joint-state probabilities use an independent-mortality approximation. The resulting expected top-up stream is discounted using the same real discount rate. The default benchmark is $622 per month in 2022 dollars: the December 2022 average SSI payment, used only as an externally observable calibration point. Two-adult families use a 1.5× benchmark scale. The model does not determine SSI or any other program eligibility, does not count a legal entitlement, and does not model children, state programs, asset tests, housing assistance, or benefit interactions.
 
 ### Expected inheritance reallocation
 
@@ -96,7 +96,9 @@ The public SCF does not link recipient to donor families, so this is not a predi
 
 - Defined-contribution and account-type balances already present in `NETWORTH` are excluded from incremental pension wealth.
 - Social Security spousal and survivor benefits are not imputed from insufficient public inputs; reported SSI, disability, survivor/dependent, and unclassified payments are not used as retired-worker benefits.
+- Current nonworking adults use a positive reported former-job payment and reported work-history duration from the SCF nonworker branch as an earnings-history proxy when both are usable; otherwise their retired-worker earnings history is explicitly marked unestimated. Peer re-entry wages affect only future covered earnings.
 - DB survivor annuities are excluded when a defensible joint-life curve is unavailable.
+- Unreported pension COLA status is treated as a fixed nominal benefit under the visible long-run inflation assumption.
 - Mixed self-employment and business income is not added wholesale.
 - Child benefits, state and local programs, asset tests, and program-specific eligibility are not modeled in the income-security scenario.
 - Expected-inheritance credits and estate donor reserves are modeled only as a nationally conserved aggregate reallocation; public SCF data do not identify actual donor-recipient relationships.
@@ -114,13 +116,7 @@ The expanded measures do not make earnings liquid, transferable, inheritable, or
 
 ## Uncertainty
 
-The code combines within-implicate sampling variance with between-implicate variance using Rubin's rule:
-
-```text
-T = mean(U_m) + (1 + 1/M) * B
-```
-
-The uncertainty API and arithmetic are tested. The current public headline pipeline does not yet load every SCF replicate weight into every scenario calculation, so headline intervals are not displayed. Until that integration is complete, the UI must be read as point estimates and sensitivity analysis, not precise population parameters.
+The public pipeline does not yet implement replicate-weight intervals or combine them with between-implicate variance. Headline intervals are therefore not displayed. Until that work is implemented and tested end to end, the UI must be read as point estimates and sensitivity analysis, not precise population parameters.
 
 Model uncertainty is likely larger than sampling uncertainty. The discount rate, employment, re-entry, earnings-history proxy, retirement age, payable factor, and DB accrual approximation should all be varied.
 
@@ -128,9 +124,9 @@ Model uncertainty is likely larger than sampling uncertainty. The discount rate,
 
 - Federal Reserve 2022 SCF summary and full public files, pinned in `data/sources.json`.
 - Federal Reserve 2022 SCF replicate weights, registered and hash-pinned for uncertainty integration.
-- SSA 2019 observed period life table published with the 2022 Trustees Report; a source-attributed snapshot is committed for deterministic offline use.
+- SSA 2019 observed period life table published with the 2022 Trustees Report; a source-attributed, hash-pinned snapshot is committed for deterministic offline use.
 - SSA 2022 PIA bend points, taxable maximum, OASDI rate, and Trustees payable-benefit scenario.
-- Financial Accounts series `FL594190045`: 2022 DB entitlements of $15.6583 trillion in the cited release vintage.
+- Financial Accounts series `FL594190045`: 2022 DB entitlements of $15.6583 trillion in the cited release vintage, retained as a hash-pinned local snapshot.
 
 Downloads are hash-verified where deterministic artifacts are available. Generated manifests record assumptions, Git revision, sources, exclusions, and reconciliation without forced scaling.
 
