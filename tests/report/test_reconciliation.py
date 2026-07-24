@@ -16,3 +16,20 @@ def test_bundled_2022_db_total_uses_billions_as_documented():
 
     assert result.series_code == "FL594190045"
     assert result.value_dollars == pytest.approx(15_658.3e9)
+
+
+def test_bundled_fed_snapshot_is_verified_before_parse(monkeypatch):
+    import wealth_report.report.reconciliation as reconciliation
+
+    calls = []
+    monkeypatch.setattr(
+        reconciliation,
+        "verify_artifact",
+        lambda path, digest: calls.append((path, digest)),
+        raising=False,
+    )
+
+    load_official_db_total(year=2022)
+
+    assert calls
+    assert calls[0][1]
