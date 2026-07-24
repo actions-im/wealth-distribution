@@ -3,7 +3,10 @@ import pandas as pd
 import pytest
 
 from wealth_report.providers.scf.summary import normalize_scf_rows
-from wealth_report.providers.scf.detailed import build_detailed_household_input
+from wealth_report.providers.scf.detailed import (
+    DETAILED_COLUMNS,
+    build_detailed_household_input,
+)
 
 
 @pytest.fixture
@@ -100,6 +103,108 @@ def test_spouse_biweekly_wage_uses_reported_weeks_worked(detailed_scf_row):
 
     assert household.spouse is not None
     assert household.spouse.annual_wage == pytest.approx(40_000)
+
+
+def test_second_job_wage_is_added_to_main_job_wage(detailed_scf_row):
+    detailed_scf_row.update(
+        {
+            "x4507": 10,
+            "x4508": 50,
+            "x4509": 20,
+            "x4510": 18,
+        }
+    )
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.respondent.annual_wage == pytest.approx(110_000)
+
+
+def test_nonworker_respondent_uses_annualized_former_job_history(detailed_scf_row):
+    detailed_scf_row.update(
+        {
+            "x4112": 0,
+            "x4113": 0,
+            "x4613": 5_000,
+            "x4614": 4,
+            "x4602": 12,
+            "x4616": 5,
+        }
+    )
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.respondent.annual_wage == 0
+    assert household.respondent.historical_annual_wage == pytest.approx(60_000)
+    assert household.respondent.career_years == 17
+
+
+def test_nonworker_spouse_uses_annualized_former_job_history(detailed_scf_row):
+    detailed_scf_row.update(
+        {
+            "x4712": 0,
+            "x4713": 0,
+            "x5205": 52_000,
+            "x5206": 6,
+            "x5202": 8,
+            "x5216": 3,
+        }
+    )
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.spouse is not None
+    assert household.spouse.annual_wage == 0
+    assert household.spouse.historical_annual_wage == pytest.approx(52_000)
+    assert household.spouse.career_years == 11
+
+
+def test_former_job_pay_without_reported_tenure_is_not_used(detailed_scf_row):
+    detailed_scf_row.update(
+        {"x4112": 0, "x4113": 0, "x4613": 5_000, "x4614": 4}
+    )
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.respondent.historical_annual_wage is None
+    assert household.respondent.career_years is None
+
+
+def test_nonworker_history_combines_reported_full_and_part_time_years(
+    detailed_scf_row,
+):
+    detailed_scf_row.update(
+        {
+            "x4112": 0,
+            "x4113": 0,
+            "x4605": 50_000,
+            "x4606": 6,
+            "x4602": 10,
+            "x4616": 4,
+        }
+    )
+
+    household = build_detailed_household_input(detailed_scf_row)
+
+    assert household.respondent.historical_annual_wage == pytest.approx(50_000)
+    assert household.respondent.career_years == 14
+
+
+def test_detailed_projection_includes_nonworker_history_branches():
+    assert {
+        "x4602",
+        "x4605",
+        "x4606",
+        "x4613",
+        "x4614",
+        "x4616",
+        "x5202",
+        "x5205",
+        "x5206",
+        "x5213",
+        "x5214",
+        "x5216",
+    } <= set(DETAILED_COLUMNS)
 
 
 @pytest.mark.parametrize(
@@ -242,3 +347,27 @@ def test_future_db_benefit_is_mapped_without_account_balance():
     assert benefit.claiming_age == 65
     assert benefit.annual_benefit == pytest.approx(30_000)
     assert benefit.status == "future"
+
+
+@pytest.mark.parametrize(
+    ("cola_code", "expected"),
+    [(1, True), (5, False), (0, None), (None, None)],
+)
+def test_current_db_benefit_retains_reported_cola_status(cola_code, expected):
+    household = build_detailed_household_input(
+        {
+            "y1": 12341,
+            "yy1": 1234,
+            "x14": 70,
+            "x8021": 1,
+            "x6461": 5,
+            "x5315": 1,
+            "x5317": 5,
+            "x5318": 2_000,
+            "x5319": 4,
+            "x5320": cola_code,
+        }
+    )
+
+    assert len(household.db_pensions) == 1
+    assert household.db_pensions[0].has_cost_of_living_adjustment is expected
