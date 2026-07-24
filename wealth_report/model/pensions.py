@@ -29,6 +29,19 @@ class DefinedBenefitValue:
     exclusions: tuple[str, ...]
 
 
+def real_growth_from_cola(
+    has_cost_of_living_adjustment: bool | None,
+    *,
+    inflation_rate: float,
+) -> float:
+    """Translate reported COLA status into a real annual benefit-growth rate."""
+    if not math.isfinite(inflation_rate) or inflation_rate < 0:
+        raise ValueError("inflation_rate must be finite and nonnegative")
+    if has_cost_of_living_adjustment is True:
+        return 0.0
+    return 1 / (1 + inflation_rate) - 1
+
+
 def defined_benefit_wealth(
     *,
     annual_benefit: float,
@@ -50,15 +63,16 @@ def defined_benefit_wealth(
     if first_survival_index >= len(survival):
         return 0.0
     benefit_survival = list(survival)[first_survival_index:]
+    first_payment_period = max(benefit_offset, 1)
     payments = [
-        annual_benefit * (1 + real_cola) ** period
+        annual_benefit * (1 + real_cola) ** (first_payment_period + period)
         for period in range(len(benefit_survival))
     ]
     return present_value_stream(
         payments,
         discount_rate,
         survival=benefit_survival,
-        start_period=max(benefit_offset, 1),
+        start_period=first_payment_period,
     )
 
 
@@ -77,7 +91,12 @@ def defined_benefit_income_stream(
         return [0.0] * years
     benefit = plan.annual_benefit * (plan.accrued_fraction if mode == "accrued" else 1.0)
     start = max(plan.claiming_age - plan.current_age, 1) - 1
-    return [benefit if period >= start else 0.0 for period in range(years)]
+    return [
+        benefit * (1 + plan.real_cola) ** (period + 1)
+        if period >= start
+        else 0.0
+        for period in range(years)
+    ]
 
 
 def value_defined_benefit_plan(
