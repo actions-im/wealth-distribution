@@ -23,6 +23,7 @@ def _cached_scf_bundle(raw_dir: str = "data/raw"):
 def load_comprehensive_report_data(
     discount_rate: float,
     wage_growth: float,
+    inflation_rate: float,
     retirement_age: int,
     employment_probability: float,
     reentry_probability: float,
@@ -39,6 +40,7 @@ def load_comprehensive_report_data(
     assumptions = ModelAssumptions(
         discount_rate=discount_rate,
         wage_growth=wage_growth,
+        inflation_rate=inflation_rate,
         retirement_age=retirement_age,
         employment_probability=employment_probability,
         reentry_probability=reentry_probability,
