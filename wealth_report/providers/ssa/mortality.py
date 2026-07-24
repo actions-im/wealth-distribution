@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from wealth_report.providers.sources import load_source_registry, verify_artifact
+
 DEFAULT_LIFE_TABLE = Path("data/reference/ssa_period_life_2019_tr2022.csv")
 
 
@@ -45,6 +47,10 @@ def load_life_table(path: str | Path, *, year: int) -> dict[str, dict[int, float
 
 def load_ssa_period_life_table(path: str | Path = DEFAULT_LIFE_TABLE) -> dict[str, dict[int, float]]:
     """Load the 2019 period table published with the 2022 Trustees Report."""
+    resolved_path = Path(path)
+    if resolved_path.resolve() == DEFAULT_LIFE_TABLE.resolve():
+        specification = load_source_registry()["ssa_period_life_2019_tr2022"]
+        verify_artifact(resolved_path, specification.snapshot_sha256)
     table = load_life_table(path, year=2019)
     expected_ages = set(range(120))
     if set(table) != {"male", "female"}:
