@@ -3,6 +3,9 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 9 * * 1"
 
 jobs:
   verify:
@@ -14,7 +17,32 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv run pytest -q
-      - run: uvx ruff check app.py wealth_report scripts tests
+      - run: uv run ruff check app.py wealth_report scripts tests
       - run: uv run python -m compileall -q app.py wealth_report scripts tests
       - run: uv run python -c "from wealth_report.providers.sources import load_source_registry; assert load_source_registry()"
       - run: uv run python scripts/reproduce_report.py --fixture --output-dir build/report
+
+  real-data-publication:
+    needs: verify
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run python scripts/reproduce_report.py --real-data --output-dir build/real-report
+      - run: >-
+          uv run python -c "import json, pathlib;
+          from wealth_report.providers.sources import sha256_file;
+          root=pathlib.Path('build/real-report');
+          manifest=json.loads((root / 'manifest.json').read_text());
+          assert not [k for k,v in manifest['active_sources'].items() if v['integrity_status']=='mismatch'];
+          assert manifest['output_files'];
+          assert all((root / name).is_file() and sha256_file(root / name)==record['sha256']
+          for name,record in manifest['output_files'].items())"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real-data-publication-report
+          path: build/real-report
