@@ -76,6 +76,59 @@ def test_continuation_credits_more_earnings_years_than_accrued():
     assert continuation.annual_scheduled_benefit > accrued.annual_scheduled_benefit
 
 
+def test_former_job_wage_can_proxy_accrued_earnings_history_for_current_non_earner():
+    person = SocialSecurityPerson(
+        age=50,
+        annual_wage=0,
+        historical_annual_wage=70_000,
+        career_years=28,
+    )
+
+    value = social_security_wealth(
+        person,
+        mode="accrued",
+        survival=[1] * 70,
+        payable_factor=1,
+        discount_rate=0.03,
+    )
+
+    assert value.annual_scheduled_benefit > 0
+    assert value.future_employee_contributions == 0
+    assert "earnings_history_former_job_proxy" in value.exclusions
+
+
+def test_missing_non_earner_history_is_disclosed_instead_of_presented_as_observed_zero():
+    person = SocialSecurityPerson(age=50, annual_wage=0, career_years=28)
+
+    value = social_security_wealth(
+        person,
+        mode="accrued",
+        survival=[1] * 70,
+        payable_factor=1,
+        discount_rate=0.03,
+    )
+
+    assert value.annual_scheduled_benefit == 0
+    assert "earnings_history_unestimated" in value.exclusions
+
+
+def test_reentry_wage_adds_only_future_covered_earnings():
+    person = SocialSecurityPerson(
+        age=50,
+        annual_wage=0,
+        historical_annual_wage=0,
+        future_annual_wage=20_000,
+        career_years=28,
+    )
+
+    accrued = social_security_wealth(person, mode="accrued", survival=[1] * 70)
+    continuation = social_security_wealth(person, mode="continuation", survival=[1] * 70)
+
+    assert accrued.annual_scheduled_benefit == 0
+    assert continuation.annual_scheduled_benefit > 0
+    assert continuation.future_employee_contributions > 0
+
+
 def test_claiming_age_adjustments_have_expected_direction():
     assert claiming_age_factor(62, full_retirement_age=67) < 1
     assert claiming_age_factor(67, full_retirement_age=67) == 1
