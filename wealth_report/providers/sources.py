@@ -32,6 +32,7 @@ class SourceSpec:
     documentation_url: str | None = None
     description: str | None = None
     sha256: str | None = None
+    snapshot_sha256: str | None = None
     archive_member: str | None = None
 
 
