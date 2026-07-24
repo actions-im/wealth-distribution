@@ -20,3 +20,12 @@ def test_report_content_is_not_embedded_in_page_modules():
     for page in ("home.py", "methodology.py"):
         source = (Path("wealth_report/app/pages") / page).read_text()
         assert "load_markdown(" in source
+
+
+def test_limitations_describe_the_nonworker_history_branch_precisely():
+    limitations = Path("content/methodology/limitations.md").read_text()
+    methodology = Path("docs/methodology.md").read_text()
+
+    assert "Current nonworking adults" in limitations
+    assert "Current nonworking adults" in methodology
+    assert "Zero-wage working-age adults" not in limitations
