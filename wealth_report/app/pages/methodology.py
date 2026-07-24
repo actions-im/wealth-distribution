@@ -18,6 +18,7 @@ from wealth_report.report.provenance import (
     build_shift_number_audit,
 )
 from wealth_report.report.ranking import aggregate_ranked_resource_distributions
+from wealth_report.report.reconciliation import load_official_db_total, reconcile
 
 
 def format_audit_value(value: float, unit: str) -> str:
@@ -87,8 +88,8 @@ def main() -> None:
 
     st.subheader("Home distribution audit")
     st.write(
-        "This table covers every Home chart value: resource shares and static bar labels, weighted totals and "
-        "family shares in this audit, and each percentage-point change."
+        "This table covers every Home chart value: resource shares, weighted totals, family shares, and "
+        "rank basis shown on hover; static bar labels; and each percentage-point change."
     )
 
     audit_display = number_audit.copy()
@@ -153,10 +154,51 @@ def main() -> None:
         },
     )
 
+    st.subheader("Defined-benefit pension reconciliation")
+    official_db = load_official_db_total(year=2022)
+    modeled_db = float(
+        (data["accrued_db_pension"] * data["household_weight"]).sum()
+    )
+    db_reconciliation = reconcile(
+        micro_total=modeled_db,
+        official_total=official_db.value_dollars,
+    )
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "Comparison": "Modeled accrued SCF DB pension wealth",
+                    "2022 dollars": f"${db_reconciliation.micro_total / 1e12:,.2f}T",
+                },
+                {
+                    "Comparison": f"Financial Accounts {official_db.series_code}",
+                    "2022 dollars": f"${db_reconciliation.official_total / 1e12:,.2f}T",
+                },
+                {
+                    "Comparison": "Modeled / official ratio",
+                    "2022 dollars": f"{db_reconciliation.ratio:.1%}",
+                },
+                {
+                    "Comparison": "Modeled minus official",
+                    "2022 dollars": f"${db_reconciliation.difference / 1e12:,.2f}T",
+                },
+            ]
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+    st.warning(
+        "This is a transparent, non-like-for-like benchmark: household accrued-benefit estimates and "
+        "the Financial Accounts entitlement total differ in scope and construction. Modeled values are "
+        "not rescaled to force agreement.",
+        icon=":material/balance:",
+    )
+
     st.subheader("Current assumptions")
     assumption_labels = {
         "discount_rate": "Real discount rate",
         "wage_growth": "Real wage growth",
+        "inflation_rate": "Long-run inflation",
         "retirement_age": "Retirement age",
         "employment_probability": "Employment probability",
         "reentry_probability": "Non-earner re-entry probability",
@@ -217,7 +259,11 @@ def main() -> None:
                 "Documentation": record["documentation_url"] or "",
                 "Description": record["description"] or "",
                 "Local filename": record["filename"],
-                "SHA-256": record["sha256"] or "Provider page / committed snapshot",
+                "SHA-256": (
+                    record["sha256"]
+                    or record["snapshot_sha256"]
+                    or "Provider page only"
+                ),
             }
         )
     st.dataframe(
