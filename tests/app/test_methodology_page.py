@@ -15,6 +15,7 @@ def test_methodology_page_renders_complete_audit_sections():
         "Home distribution audit",
         "Age slicing number audit",
         "Component formulas",
+        "Defined-benefit pension reconciliation",
         "Current assumptions",
         "Inheritance conservation",
         "Double-count protection",
@@ -43,7 +44,7 @@ def test_methodology_page_renders_complete_audit_sections():
     assert "SCF expectation field values (including SCF imputation where applicable)" in visible_text
     assert "consumption is not modeled as an estate reduction" in visible_text
     assert "does not add future returns, yields, rents, dividends, or capital gains" in visible_text
-    assert "shown on hover" not in visible_text
+    assert "shown on hover" in visible_text
     assert "static bar labels" in visible_text
     assert "Research question: economic value, not just balance-sheet ownership" in headings
     assert "valid current-ownership accounting measure" in visible_text
@@ -53,6 +54,8 @@ def test_methodology_page_renders_complete_audit_sections():
     assert "22,975 record rows" in visible_text
     assert "SSA mortality" in visible_text
     assert "Financial Accounts" in visible_text
+    assert "not rescaled" in visible_text
+    assert "non-like-for-like" in visible_text
 
 
 def test_methodology_page_configures_clickable_source_urls():
@@ -63,4 +66,6 @@ def test_methodology_page_configures_clickable_source_urls():
     assert "build_shift_number_audit" in source
     assert "build_age_shift_number_audit" in source
     assert "build_component_methodology_table" in source
+    assert "load_official_db_total" in source
+    assert "reconcile" in source
     assert "--real-data" in source
