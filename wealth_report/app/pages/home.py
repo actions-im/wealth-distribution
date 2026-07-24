@@ -5,7 +5,10 @@ import streamlit as st
 from wealth_report.app.bootstrap import load_page_report
 from wealth_report.app.content import load_markdown
 from wealth_report.app.ui import methodology_expander
-from wealth_report.report.charts import distribution_shift_figure
+from wealth_report.report.charts import (
+    distribution_shift_accessible_table,
+    distribution_shift_figure,
+)
 from wealth_report.report.distribution import build_distribution_shift_data
 from wealth_report.report.formatting import percent
 from wealth_report.report.ranking import aggregate_ranked_resource_distributions
@@ -41,9 +44,15 @@ def main() -> None:
 
     st.caption(
         f"Baseline: {assumptions['discount_rate']:.1%} real discount rate; "
+        f"{assumptions['inflation_rate']:.1%} long-run inflation; "
         f"{assumptions['retirement_age']} retirement age; "
         f"{assumptions['payable_benefit_factor']:.0%} Social Security payable factor."
         f" ${assumptions['income_security_floor_monthly']:,.0f}/month income-security benchmark."
+    )
+    st.warning(
+        "These are model-based point estimates. SCF sampling and imputation uncertainty are not "
+        "shown; use the sidebar controls as sensitivity scenarios.",
+        icon=":material/warning:",
     )
 
     st.subheader("How including future resources changes the distribution")
@@ -53,17 +62,35 @@ def main() -> None:
         width="stretch",
         config={"displayModeBar": False},
     )
+    st.dataframe(
+        distribution_shift_accessible_table(shift_data),
+        hide_index=True,
+        width="stretch",
+        column_config={
+            "Conventional share": st.column_config.NumberColumn(format="percent"),
+            "Conventional weighted resources": st.column_config.NumberColumn(
+                format="dollar"
+            ),
+            "All modeled resources share": st.column_config.NumberColumn(
+                format="percent"
+            ),
+            "All modeled weighted resources": st.column_config.NumberColumn(
+                format="dollar"
+            ),
+        },
+    )
     st.caption(
         "Each bar totals 100% and is independently ranked under its own measure. Percentage-point "
         "changes compare rank-group shares, not the movement of the same households. Source: Federal "
         "Reserve 2022 SCF summary and full public files; SSA mortality and 2022 program parameters; "
         "SCF inheritance-expectation and estate-intent fields; model calculations in this repository."
     )
-    st.page_link(
-        "wealth_report/app/pages/methodology.py",
-        label="Audit every displayed number, formula, and source",
-        icon=":material/menu_book:",
-    )
+    if st.session_state.get("assumptions_rendered_by_entrypoint", False):
+        st.page_link(
+            "wealth_report/app/pages/methodology.py",
+            label="Audit every displayed number, formula, and source",
+            icon=":material/menu_book:",
+        )
 
     with st.expander("Definitions, components, and exclusions"):
         st.markdown(load_markdown("home/definitions"))
